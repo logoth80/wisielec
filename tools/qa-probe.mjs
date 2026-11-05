@@ -61,7 +61,14 @@ const probe = `
             keyboard: box(kb),
             kbDisplay: kb ? getComputedStyle(kb).display : null,
             row: box(row),
-            key: key ? [key.getBoundingClientRect().width, getComputedStyle(key).minWidth] : null,
+            // a keyboard key: the box it offers a thumb, and how its letter is set
+            key: key
+              ? (() => {
+                  const r = key.getBoundingClientRect();
+                  const cs = getComputedStyle(key);
+                  return [Math.round(r.width), Math.round(r.height), cs.fontSize, cs.fontWeight];
+                })()
+              : null,
             // the word is played out and a new one dealt, six times over: each word
             // is measured with the size it was given, no glyph may reach past its own
             // slot, and the row must always stay inside the play area
@@ -127,6 +134,30 @@ const probe = `
               const r = b.getBoundingClientRect();
               return [b.id, Math.round(r.width), Math.round(r.height), getComputedStyle(b).fontSize];
             }),
+            // the drawing: it is sized by the room the page has, so it must keep the
+            // height it had when the keyboard appears, not be asked to step back
+            gallows: (() => {
+              const g = document.getElementById("gallows");
+              if (!g) return null;
+              const r = g.getBoundingClientRect();
+              return [Math.round(r.width), Math.round(r.height)];
+            })(),
+            // the record of used letters, with its distance below the word row
+            tried: (() => {
+              const t = document.getElementById("tried");
+              if (!t) return null;
+              const r = t.getBoundingClientRect();
+              const cs = getComputedStyle(t);
+              const w = document.getElementById("word").getBoundingClientRect();
+              return [
+                Math.round(r.width),
+                Math.round(r.height),
+                cs.fontSize,
+                cs.fontWeight,
+                Math.round(r.top - w.bottom),
+                cs.display,
+              ];
+            })(),
           };
           document.title = "PROBE " + JSON.stringify(report);
         }, 1500);

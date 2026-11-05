@@ -57,8 +57,9 @@ There is no build step and no server is required.
   sized for a thumb: the icon buttons are 46 px squares with 21 px glyphs, and the music
   note is set at 30 px because that pictogram is far sparser than the keyboard one and
   only reads at the same size that way. The word being
-  guessed is the largest element at every screen size; the gallows and the letters already
-  tried are drawn smaller around it.
+  guessed is the largest element at every screen size; the gallows and the record of the
+  letters already tried are drawn around it, smaller than the word but still large enough
+  to read from across a table.
 - **The word takes the room it is given.** The slot pitch is the width of the play area
   divided by the number of letters in the word on the board, limited by a share of the
   screen height and by 110 px; the letter size is then measured against the widest glyph
@@ -83,12 +84,18 @@ There is no build step and no server is required.
   beep and a miss gets the low long one, which is the way it reads.
 - **The on-screen keyboard sits at the bottom and replaces the "letters you tried"
   line** while it is shown — it already shows every letter used, greyed the same way
-  whether it was in the word or not. With a physical keyboard in play that line stays.
-  Asked for on a desktop it is a keyboard sized for a hand, not a thumbnail: keys about
-  98 × 57 px (up to 68 px tall on a tall window, and never below 52 px on a short one)
-  with 24 px letters, and the gallows steps back so that the page never scrolls for it.
-  A phone keeps its thumb-sized 46 px keys. Even then the word is several times taller
-  than a key glyph: at that width an eighteen-letter word still gets 37 px letters.
+  whether it was in the word or not. With a physical keyboard in play that line stays,
+  and it is set to be read: 24 px letters at a normal weight, with a clear gap under the
+  word row (measured 49 px at 1280 × 800) rather than crowded against it.
+  Asked for on a desktop, the keyboard is sized for a hand, not a thumbnail: keys about
+  98 × 57 px (up to 68 px tall on a tall window, never below 52 px on a short one) with
+  24 px letters at a normal weight — a bold letter on a key is noise, not a letter you
+  read. A phone keeps its own 46 px thumb keys, unchanged.
+  Nothing is asked to step back for it either: the page is a fixed-height flex
+  column and the drawing is sized by the room that leaves, so at 1920 × 1080 the gallows
+  measures 312 × 520 whether the keyboard is on or off, and it only gives way when a
+  window is genuinely too short for both (411 → 373 px at 1280 × 800). The page does not
+  scroll in any of these cases.
 - **The toggles show what they are doing.** The keyboard and the sound chip take the same
   filled on-state, so "sound is on" is visible before anything is pressed, and switching
   sound back on answers with one beep.
@@ -106,7 +113,7 @@ There is no build step and no server is required.
 node tools/verify-parity.mjs
 ```
 
-89 checks over nine areas: the dictionary payloads and filter, the word-finder scan,
+91 checks over nine areas: the dictionary payloads and filter, the word-finder scan,
 all 13 palettes, the game rules, the saved-file format, Polish collation, page wiring,
 and the interface rules above (one used-letter state, the keyboard replacing the tried
 list, no restart control, all controls and the score in the top bar, the word sized to
@@ -114,16 +121,20 @@ the space it is given and measured against the widest glyph, a filled slot drawi
 bar, the two beeps swapped, touch-sized controls and a touch-sized Continue button, an
 end-of-word message that mentions no keys on a touch device, no F10 printed on a button,
 the sound chip carrying the same on-state as the keyboard chip, a desktop keyboard sized
-for a hand with the gallows stepping back for it, every readable text on the page smaller
+for a hand with its letters at a normal weight, a drawing sized by the room the page has
+rather than one made smaller for the keyboard, a used-letters line large enough to read
+and set below the word, every readable text on the page smaller
 than the word — the pictogram chips are exempt, being controls in fixed boxes rather than
 content). The expected values were measured by running the upstream Python over these
 exact dictionary files.
 
 `node tools/qa-probe.mjs [fixture]` prints what the running page actually measures: box
-geometry for the app, the play area, the word row, the controls in the top bar and the
-keyboard; the state a reload would find in `localStorage`; the computed opacity of a
-filled slot's bar; whether the page scrolls; the end-of-word line as the page wrote it;
-the size of the Continue button; and — after playing six words out and dealing new ones —
+geometry for the app, the play area, the word row, the drawing, the controls in the top
+bar and the keyboard (a key as `[width, height, font-size, font-weight]`); the box,
+computed size and distance below the word row of the used-letters line; the state a
+reload would find in `localStorage`; the computed opacity of a filled slot's bar; whether
+the page scrolls; the end-of-word line as the page wrote it; the size of the Continue
+button; and — after playing six words out and dealing new ones —
 a sample per word of `[letters, slot pitch, letter size, row width]`. A fixture may be
 named to measure a state: `node tools/qa-probe.mjs _qa_kbd.html` measures the desktop
 keyboard while it is shown. What has to hold:
@@ -133,8 +144,11 @@ keyboard while it is shown. What has to hold:
   reading `0`;
 - `scroll` equal to `inner` at every window size, with the keyboard shown or hidden;
 - a phone's icon buttons measuring 46 px with the note glyph larger than the rest, and a
-  desktop's keys about 98 px wide and clamped in height, so even a 620 px-tall window
-  holds the whole page.
+  desktop's keys about 98 px wide at a normal letter weight, so even a 620 px-tall window
+  holds the whole page;
+- the drawing measuring the same for `_qa_mid.html` and `_qa_kbd.html` at 1920 × 1080
+  (312 × 520 both) and giving way only when the window is too short for both; the used
+  letters reading 24 px and sitting some 50 px clear of the word row.
 
 ### screenshots
 
@@ -149,6 +163,11 @@ msedge --headless=new --disable-gpu --no-first-run --hide-scrollbars \
   --window-size=1280,800 --virtual-time-budget=25000 \
   --screenshot=qa/desktop-mid.png file:///…/_qa_mid.html
 ```
+
+The two `_qa_kbd.html` shots — `qa/desktop-kbd.png` at 1280 × 800 and `qa/wide-kbd.png`
+at 1920 × 1080 — are kept side by side because together they are the evidence for the two
+claims above: the key letters are large at a normal weight, and the drawing is the same
+size with the keyboard on as with it off.
 
 Headless Chromium always reports a fine primary pointer whatever the window size, so a
 fixture name ending in `-touch` (`win-touch`, `lost-touch`) seeds the same board with

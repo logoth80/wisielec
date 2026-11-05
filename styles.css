@@ -48,7 +48,11 @@ body {
 
 body {
   overscroll-behavior: none;
-  min-height: 100dvh;
+  /* the page is the window, not a document that grows: with a definite height the
+     flex column can hand the remaining room to the board, which is what lets the
+     drawing keep its size until something genuinely needs that room */
+  box-sizing: border-box;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -207,13 +211,17 @@ body {
 }
 
 /* -------------------------------------------------------- tried letters, text */
-/* secondary on purpose: the word in play must stay the loudest thing */
+/* secondary to the word in play, but still comfortably readable: this is the record
+   of the letters used when there is no on-screen keyboard to read them from, and the
+   source game draws them at a size close to the word's own. It sits clearly below the
+   word, because that is the thing you are looking at. */
 
 .tried {
   min-height: 1.2em;
   max-width: 100%;
+  margin-top: clamp(14px, 4.5vh, 48px);
   text-align: center;
-  font-size: clamp(13px, 1.7vw, 21px);
+  font-size: clamp(16px, 2.6vw, 24px);
   letter-spacing: 0.14em;
   color: var(--faint);
   word-break: break-all;
@@ -369,9 +377,10 @@ body {
 }
 
 /* The on-screen keyboard on a desktop is there because it was asked for, and at that
-   size there is room for keys an open hand can aim at. The word is still several
-   times taller than a key glyph: at this width even an eighteen-letter word gets
-   letters around 35 px. */
+   size there is room for keys an open hand can aim at — large, but set at a normal
+   weight, because a bold letter on a key is noise rather than a letter you read.
+   The word is still several times taller than a key glyph: at this width even an
+   eighteen-letter word gets letters around 35 px. */
 @media (min-width: 901px) {
   .keyboard {
     width: min(1060px, 100%);
@@ -389,18 +398,29 @@ body {
     height: clamp(52px, 8dvh, 68px);
     border-radius: 8px;
     font-size: 24px;
+    font-weight: 400;
   }
 
   .kbd-row-extra .key {
     max-width: 88px;
     height: clamp(46px, 7dvh, 60px);
     font-size: 21px;
+    font-weight: 400;
   }
 
-  /* the gallows is the part of the page that gives: when the keyboard has been asked
-     for on a desktop it steps back, so nothing on the page has to scroll for it */
-  body[data-kbd="on"] .gallows {
-    max-height: min(34dvh, 340px);
+  /* Nothing here is asked to step back for the keyboard. The drawing is sized by the
+     room the page has rather than by its own width, so the gallows keeps the height it
+     had until the keyboard genuinely needs some of that room — on a 1080p window it
+     measures the same whether the keyboard is on or off. */
+  .board {
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .gallows {
+    width: auto;
+    max-width: 100%;
+    height: 100%;
+    margin: 0 auto;
   }
 }
 

@@ -378,9 +378,19 @@ ok(
   "found " + Math.max(0, ...fixedText) + "px",
 );
 ok(
-  "a desktop keyboard, when asked for, is sized for a hand and the gallows gives way to it",
-  /@media \(min-width: 901px\)[\s\S]*?\.key\s*\{[^}]*height:\s*clamp\(5[0-9]px\s*,\s*8dvh\s*,\s*6[0-9]px/.test(css) &&
-    /body\[data-kbd="on"\]\s*\.gallows\s*\{[^}]*max-height:\s*min\(3[0-9]dvh/.test(css),
+  "a desktop keyboard, when asked for, is sized for a hand — large letters at a normal weight",
+  /@media \(min-width: 901px\)[\s\S]*?\.key\s*\{[^}]*height:\s*clamp\(5[0-9]px\s*,\s*8dvh\s*,\s*6[0-9]px[^}]*font-size:\s*24px[^}]*font-weight:\s*400/.test(css),
+);
+ok(
+  "the drawing takes the room the page has rather than being made smaller for the keyboard",
+  /@media \(min-width: 901px\)[\s\S]*?\.board\s*\{[^}]*grid-template-rows:\s*minmax\(0,\s*1fr\)/.test(css) &&
+    /@media \(min-width: 901px\)[\s\S]*?\.gallows\s*\{[^}]*height:\s*100%/.test(css) &&
+    !/body\[data-kbd="on"\]\s*\.gallows/.test(css),
+);
+ok(
+  "the letters you tried are readable and set below the word, not crowded under it",
+  /\.tried\s*\{[^}]*font-size:\s*clamp\(1[6-9]px\s*,\s*[\d.]+vw\s*,\s*2[0-4]px/.test(css) &&
+    /\.tried\s*\{[^}]*margin-top:\s*clamp\(1[0-9]px/.test(css),
 );
 ok(
   "the sound chip carries the same on-state as the keyboard chip",
