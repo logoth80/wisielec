@@ -1,0 +1,5 @@
+# the dictionaries are data files parsed line by line; keep their bytes identical
+# on every platform instead of letting Git rewrite line endings at checkout
+* text=auto eol=lf
+*.png binary
+*.jpg binary

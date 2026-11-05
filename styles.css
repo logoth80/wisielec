@@ -1,0 +1,591 @@
+/* styles.css — the desktop drawing, re-drawn in CSS.
+ *
+ * Colours are never hard-coded here: hangman-core.js holds the 13 upstream
+ * palettes and hangman-view.js writes them into the custom properties below, so
+ * F3 recolours the whole interface the way load_color_theme() recolours pygame.
+ *
+ * The layout is not the pygame window's: the word being guessed is the largest
+ * thing on the screen at every size, everything else (the gallows, the letters
+ * already tried, the score) is drawn smaller around it.
+ */
+
+:root {
+  --bg: #ffd08d;
+  --hangman: #006884;
+  --letter: #006884;
+  --loss: #fa9d00;
+  --hot: red;
+  --faint: rgba(0, 104, 132, 0.5);
+  --chip: rgba(0, 104, 132, 0.1);
+  --chipEdge: rgba(0, 104, 132, 0.32);
+  --panel: #fff3dc;
+  --keyBg: #efe0c0;
+  --keyFg: #006884;
+  --keyHit: #006884;
+  --keyHitFg: #ffd08d;
+  --keyMiss: #9a8a6e;
+  --keyShadow: rgba(0, 0, 0, 0.16);
+  --keyUsed: rgba(0, 104, 132, 0.1);
+  --keyUsedFg: rgba(0, 104, 132, 0.38);
+  --underline: rgba(0, 104, 132, 0.85);
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--letter);
+  font-family: system-ui, -apple-system, "Segoe UI", "Noto Sans", Arial, sans-serif;
+  font-weight: 700;
+  overflow-wrap: break-word;
+}
+
+body {
+  overscroll-behavior: none;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 10px clamp(10px, 3vw, 40px) calc(14px + env(safe-area-inset-bottom));
+}
+
+/* the game column, with the on-screen keyboard under it */
+.app,
+.keyboard {
+  margin-inline: auto;
+}
+
+.app {
+  flex: 1 1 auto;
+  width: 100%;
+  max-width: 1320px;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ------------------------------------------------------------------ top hud */
+
+.hud {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 10px;
+}
+
+/* every control on the page lives in this one row, F2 language first; the score
+   and the high score take the right-hand end */
+.hud .controls {
+  justify-self: center;
+  justify-content: center;
+}
+
+.busy {
+  margin: 0;
+  font-size: 13px;
+  color: var(--loss);
+}
+
+/* ------------------------------------------------------------- gallows/word */
+
+.board {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(150px, 30%) 1fr;
+  align-items: center;
+  gap: clamp(12px, 3vw, 40px);
+}
+
+.gallows {
+  width: 100%;
+  height: auto;
+  max-height: min(58dvh, 520px);
+}
+
+.gallows line,
+.gallows circle {
+  stroke: var(--hangman);
+  stroke-width: 5;
+  fill: none;
+  stroke-linecap: butt;
+}
+
+.gallows .stage {
+  opacity: 0;
+  transition: opacity 0.14s linear;
+}
+
+.gallows .stage.on {
+  opacity: 1;
+}
+
+.play {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(10px, 2.4vh, 26px);
+}
+
+/* The word is the point of the page: fitWord() in hangman-view.js sizes these
+   cells to the space the page has, for the word actually on the board — a short
+   word gets big letters, a long one smaller ones, up to the same ceiling. The
+   size only changes when a new word is drawn, never while you are guessing it. */
+.word {
+  --cell: 40px;
+  --letter-size: 34px;
+  --underline-h: 2px;
+  display: flex;
+  justify-content: center;
+  gap: 0;
+  flex-wrap: nowrap;
+  max-width: 100%;
+}
+
+/* One row of equal slots. An empty slot shows its "_"; once the letter is placed
+   the bar is gone and the letter takes its place, exactly as the source game
+   redraws that position. Every slot keeps the same width and the bar is inset by
+   the same percentage, so the spacing along the row is constant whatever the
+   letters are — hangman-view.js picks a letter size that keeps even the widest
+   glyph inside its slot. */
+.cell {
+  position: relative;
+  flex: 0 0 auto;
+  width: var(--cell);
+  height: calc(var(--letter-size) * 1.16);
+  display: grid;
+  place-items: end center;
+}
+
+.cell .glyph {
+  font-size: var(--letter-size);
+  line-height: 1;
+  font-weight: 400;
+  color: var(--letter);
+}
+
+.cell::after {
+  content: "";
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  bottom: calc(var(--letter-size) * 0.16);
+  height: var(--underline-h);
+  border-radius: 2px;
+  background: var(--underline);
+  transition: opacity 0.14s linear;
+}
+
+/* the letter replaces its "_", so the bar goes away when the letter is placed */
+.cell.solved::after {
+  opacity: 0;
+}
+
+@keyframes settle {
+  from {
+    opacity: 0;
+    transform: translateY(0.14em);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.cell.solved .glyph {
+  animation: settle 0.16s ease-out;
+}
+
+/* -------------------------------------------------------- tried letters, text */
+/* secondary on purpose: the word in play must stay the loudest thing */
+
+.tried {
+  min-height: 1.2em;
+  max-width: 100%;
+  text-align: center;
+  font-size: clamp(13px, 1.7vw, 21px);
+  letter-spacing: 0.14em;
+  color: var(--faint);
+  word-break: break-all;
+}
+
+.message {
+  min-height: 2.4em;
+  max-width: 100%;
+  text-align: center;
+  color: var(--loss);
+  font-size: clamp(14px, 2vw, 22px);
+  line-height: 1.3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.msg-line {
+  font-weight: 600;
+}
+
+/* the way forward when a word ends — the game has no new-game control, so this
+   button only exists in the message area, once the word is won or lost */
+.chip-continue {
+  display: inline-flex;
+  font-size: 15px;
+  padding: 10px 22px;
+  background: var(--hangman);
+  color: var(--bg);
+  border-color: transparent;
+}
+
+/* ------------------------------------------------------------------- chips */
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.chip {
+  appearance: none;
+  border: 1px solid var(--chipEdge);
+  background: var(--chip);
+  color: var(--letter);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 7px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.chip:disabled {
+  opacity: 0.42;
+  cursor: default;
+}
+
+.chip.icon {
+  width: 36px;
+  padding: 7px 0;
+  text-align: center;
+}
+
+.chip.on {
+  background: var(--keyHit);
+  color: var(--keyHitFg);
+  border-color: transparent;
+}
+
+.status {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin-left: auto;
+}
+
+.highscore {
+  font-size: 12px;
+  color: var(--faint);
+}
+
+.score {
+  font-size: 19px;
+  color: var(--hangman);
+}
+
+.score.hot {
+  color: var(--hot);
+}
+
+/* ------------------------------------------------------------------ keyboard */
+
+.keyboard {
+  display: none;
+  flex-direction: column;
+  width: min(760px, 100%);
+  gap: 6px;
+  padding-top: 6px;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.kbd-row {
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+}
+
+.key {
+  appearance: none;
+  border: 0;
+  flex: 1 1 0;
+  min-width: 28px;
+  max-width: 46px;
+  height: 45px;
+  border-radius: 6px;
+  background: var(--keyBg);
+  color: var(--keyFg);
+  font: inherit;
+  font-size: 17px;
+  font-weight: 800;
+  box-shadow: 0 2px 0 var(--keyShadow);
+  cursor: pointer;
+}
+
+.key:active {
+  transform: translateY(1px);
+  box-shadow: none;
+}
+
+/* a letter that has been played — found or not, the keyboard does not tell you
+   which, because the board already does */
+.key.used {
+  background: var(--keyUsed);
+  color: var(--keyUsedFg);
+  box-shadow: none;
+}
+
+.kbd-row-extra {
+  display: none;
+}
+
+.keyboard.show-polish .kbd-row-extra {
+  display: flex;
+}
+
+.kbd-row-extra .key {
+  height: 41px;
+  font-size: 16px;
+  max-width: 42px;
+}
+
+body[data-kbd="on"] .keyboard {
+  display: flex;
+}
+
+body[data-kbd="off"] .keyboard,
+body[data-kbd="off"] .kbd-row {
+  display: none !important;
+}
+
+@media (max-width: 900px), (pointer: coarse) {
+  body[data-kbd="auto"] .keyboard {
+    display: flex;
+  }
+}
+
+/* The keyboard sits at the bottom of the page and *is* the record of the letters
+   already used, so the "you tried" line steps out whenever the keyboard is shown.
+   With a physical keyboard in play that line stays, because nothing replaces it. */
+body[data-kbd="on"] .tried {
+  display: none;
+}
+
+@media (max-width: 900px), (pointer: coarse) {
+  body[data-kbd="auto"] .tried {
+    display: none;
+  }
+}
+
+/* -------------------------------------------------------------- bottom sheet */
+
+.panel {
+  position: fixed;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  width: min(820px, 100%);
+  max-height: 84dvh;
+  overflow: auto;
+  background: var(--panel);
+  border: 1px solid var(--chipEdge);
+  border-bottom: 0;
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 -10px 34px rgba(0, 0, 0, 0.28);
+  padding: 12px 16px calc(18px + env(safe-area-inset-bottom));
+  z-index: 40;
+}
+
+.panel[hidden] {
+  display: none;
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.tab {
+  appearance: none;
+  border: 1px solid var(--chipEdge);
+  background: transparent;
+  color: var(--letter);
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.tab.active {
+  background: var(--keyHit);
+  color: var(--keyHitFg);
+  border-color: transparent;
+}
+
+.panel-body {
+  color: var(--letter);
+}
+
+.panel-body h3 {
+  font-size: 14px;
+  margin: 14px 0 6px;
+}
+
+.panel-body ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.keys {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.keys th {
+  text-align: left;
+  white-space: nowrap;
+  padding: 7px 12px 7px 0;
+  font-size: 13px;
+  color: var(--hangman);
+  vertical-align: top;
+  border-top: 1px solid var(--chipEdge);
+}
+
+.keys td {
+  padding: 7px 0;
+  font-size: 13px;
+  font-weight: 600;
+  border-top: 1px solid var(--chipEdge);
+}
+
+code {
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-weight: 700;
+}
+
+textarea {
+  width: 100%;
+  background: var(--bg);
+  color: var(--letter);
+  border: 1px solid var(--chipEdge);
+  border-radius: 10px;
+  padding: 10px;
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.find-note {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--faint);
+  margin: 0 0 10px;
+}
+
+.find-head {
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.find-list {
+  line-height: 1.9;
+  font-size: 14px;
+}
+
+/* ------------------------------------------------------------- phone layout */
+
+@media (max-width: 900px) {
+  .app {
+    gap: 6px;
+  }
+
+  .hud {
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+
+  .board {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .gallows {
+    max-height: 26dvh;
+    width: auto;
+    margin: 0 auto;
+  }
+
+  .play {
+    gap: 8px;
+  }
+
+  .status {
+    width: 100%;
+    justify-content: space-between;
+    margin-left: 0;
+  }
+
+  /* a phone only fits short letters, so everything else has to step back further */
+  .score {
+    font-size: 16px;
+  }
+
+  .highscore {
+    font-size: 11px;
+  }
+
+  .chip {
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gallows .stage,
+  .cell::after {
+    transition: none;
+  }
+
+  .cell.solved .glyph {
+    animation: none;
+  }
+}

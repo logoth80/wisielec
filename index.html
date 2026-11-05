@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Wisielec — Hangman</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#ffd08d" />
+    <meta name="description" content="Browser port of logoth80/Hangman: same dictionaries, palettes and rules, saved after every key press, with an on-screen keyboard for phones." />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 400' stroke='%23006884' stroke-width='18' fill='none'%3E%3Cpath d='M10 370h180M100 60v310M200 60H100M200 60v50'/%3E%3Ccircle cx='200' cy='135' r='25'/%3E%3Cpath d='M200 160v70M200 170l-30 60M200 170l30 60'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body data-kbd="auto">
+    <!-- The word being guessed is the largest element on the page at any size; the
+         gallows, the score and the controls are drawn around it, smaller. The letter
+         cells themselves are sized by fitWord() in hangman-view.js. -->
+    <div class="app">
+      <header class="hud">
+        <div class="controls">
+          <button class="chip" id="btn-language" title="F2 — switch dictionary">F2&nbsp;&nbsp;english</button>
+          <button class="chip" id="btn-theme" title="F3 — next palette (13 of them)">F3 theme</button>
+          <button class="chip" id="btn-find" title="F10 — how many words still fit">F10 words</button>
+          <button class="chip" id="btn-explain" title="F1 — explain the word" disabled>F1 explain</button>
+          <button class="chip icon" id="btn-kbd" title="on-screen keyboard: auto">⌨</button>
+          <button class="chip icon" id="btn-sound" title="sound: on">♪</button>
+          <button class="chip icon" id="btn-help" title="keys and notes">?</button>
+        </div>
+        <div class="status">
+          <span class="highscore" id="highscore">high score: 0</span>
+          <span class="score" id="score">score: 0</span>
+        </div>
+      </header>
+      <p class="busy" id="busy" hidden></p>
+
+      <main class="board" id="board">
+        <!-- draw_hangman(): ten stages, coordinates taken from the Python source
+             (x 10..230, y 60..370 in an 800x600 window), stroke width 5. -->
+        <svg class="gallows" id="gallows" viewBox="0 0 240 400" aria-hidden="true">
+          <g class="stage" id="stage-1"><line x1="10" y1="370" x2="190" y2="370" /></g>
+          <g class="stage" id="stage-2"><line x1="100" y1="60" x2="100" y2="370" /></g>
+          <g class="stage" id="stage-3"><line x1="200" y1="60" x2="100" y2="60" /></g>
+          <g class="stage" id="stage-4"><line x1="200" y1="60" x2="200" y2="110" /></g>
+          <g class="stage" id="stage-5"><circle cx="200" cy="135" r="25" /></g>
+          <g class="stage" id="stage-6"><line x1="200" y1="160" x2="200" y2="230" /></g>
+          <g class="stage" id="stage-7"><line x1="200" y1="170" x2="170" y2="230" /></g>
+          <g class="stage" id="stage-8"><line x1="200" y1="170" x2="230" y2="230" /></g>
+          <g class="stage" id="stage-9"><line x1="200" y1="230" x2="170" y2="310" /></g>
+          <g class="stage" id="stage-10"><line x1="200" y1="230" x2="230" y2="310" /></g>
+        </svg>
+
+        <section class="play" id="play">
+          <div class="word" id="word" role="img" aria-label="word"></div>
+          <div class="tried" id="tried" aria-label="letters already tried"></div>
+          <div class="message" id="message" aria-live="polite"></div>
+        </section>
+      </main>
+
+      <div class="keyboard" id="keyboard" aria-label="on-screen keyboard"></div>
+    </div>
+
+    <div class="panel" id="panel" data-tab="help" hidden>
+      <div class="panel-head">
+        <div class="tabs" id="panel-tabs">
+          <button class="tab" data-panel="help">Keys</button>
+          <button class="tab" data-panel="find">Word finder</button>
+          <button class="tab" data-panel="data">Saved data</button>
+        </div>
+        <button class="chip icon" id="panel-close" title="close">✕</button>
+      </div>
+
+      <div class="panel-body" data-panel="help">
+        <table class="keys">
+          <tr><th>a–z, ą ć ę ł ń ó ś ź ż</th><td>a guess. Repeats, out-of-alphabet keys and input after the game ended are ignored, exactly as in the desktop build.</td></tr>
+          <tr><th>F2</th><td>switch dictionary English ⇄ Polish. Reloads the word list and starts a new word.</td></tr>
+          <tr><th>F3</th><td>next colour theme — the same 13 palettes, wrapping 13 → 1.</td></tr>
+          <tr><th>New game</th><td>there is none: a word is played to the end, won or lost. When it is over, Space or Enter deals the next one; reloading the page resumes the word in progress instead.</td></tr>
+          <tr><th>Space / Enter</th><td>next word, but only once the game is over.</td></tr>
+          <tr><th>F1</th><td>open “co to jest &lt;word&gt;” in a search tab — available when the game is over.</td></tr>
+          <tr><th>F10</th><td>count the dictionary words that still match the pattern and rule out the misses.</td></tr>
+        </table>
+        <h3>Notes</h3>
+        <ul>
+          <li>Polish letters are separate letters: <code>ą</code> is never revealed by guessing <code>a</code>. That is how the desktop version behaves, so the on-screen keyboard gains a row of ą ć ę ł ń ó ś ź ż while the Polish dictionary is active.</li>
+          <li>The state is written after every key press — reload the page, lock the phone, come back, and the word, letters, stage and score are where you left them.</li>
+          <li>The dictionaries are the unmodified upstream files (82 155 Polish / 272 372 English lines; 81 835 / 272 371 playable after the original 5–18-character filter).</li>
+          <li>Opening <code>index.html</code> directly works; serving the folder over http(s) just lets the page read the <code>.txt</code> files instead of their generated <code>.js</code> twins.</li>
+        </ul>
+      </div>
+
+      <div class="panel-body" data-panel="find" hidden>
+        <p class="find-note">The pattern is the word as it currently stands; wrong letters are excluded — the same query as F10 and <code>list_words.py</code>.</p>
+        <div id="find-result"></div>
+      </div>
+
+      <div class="panel-body" data-panel="data" hidden>
+        <p class="find-note">saved.txt in the desktop format, so a browser save and a desktop save can be exchanged.</p>
+        <textarea id="data-saved" spellcheck="false" rows="10"></textarea>
+        <div class="row">
+          <button class="chip" id="data-apply">Load this state</button>
+          <button class="chip" id="data-export">Download saved.txt</button>
+          <label class="chip file">Read saved.txt<input type="file" id="data-file" accept=".txt,text/plain" /></label>
+          <button class="chip" id="data-export-history">Download history.txt</button>
+          <button class="chip danger" id="data-reset">Erase saved game</button>
+        </div>
+        <p class="find-note" id="data-history"></p>
+      </div>
+    </div>
+
+    <script src="js/hangman-core.js"></script>
+    <script src="js/hangman-view.js"></script>
+    <script src="js/hangman-app.js"></script>
+  </body>
+</html>
