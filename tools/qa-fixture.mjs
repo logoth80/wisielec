@@ -34,6 +34,20 @@ const mid = {
 
 const STATES = {
   mid,
+  // the most used letters a word can leave on screen at the largest letter size:
+  // a five-letter word won after nine misses. The used-letters line is at its
+  // longest and its biggest here — the place where a readable size would stop fitting
+  crowded: {
+    highscore: 44,
+    theme: 1,
+    language: "polish",
+    wrong_guesses: 9,
+    score: 5,
+    guessed_letters: ["b", "i", "l", "e", "t", "a", "c", "d", "f", "g", "h", "k", "m", "p"],
+    correct_letters: ["b", "i", "l", "e", "t"],
+    bad_letters: ["a", "c", "d", "f", "g", "h", "k", "m", "p"],
+    current_word: "bilet",
+  },
   // the same board, asked for the on-screen keyboard: used letters are greyed out
   kbd: { ...mid, prefs: { keyboard: "on", sound: true } },
   // and the same board with sound switched off: the sound chip shows the plain,
@@ -94,19 +108,24 @@ const TOUCH_STUB = [
 ].join("\n");
 
 for (const name of names) {
-  const base = name.replace(/-touch$/, "");
+  const base = name.replace(/-touch$/, "").replace(/-en$/, "");
   const state = STATES[base];
   if (!state) {
     console.error("no such fixture: " + base + " (known: " + Object.keys(STATES).join(", ") + ")");
     continue;
   }
   const { prefs, ...saved } = state;
+  // -en plays the same word through the English dictionary, which is what switches
+  // the interface: the same page must be fully English there and fully Polish in the
+  // plain fixture, so a gap in either half shows up in the probe's own report
+  if (/-en$/.test(name)) saved.language = "english";
   // every fixture states the preferences, so a shared browser profile can never leak
   // one shot's setting into another: "auto" means the desktop shots have no keyboard
   // and the phone shots get one, and sound on matches what a fresh page looks like
   const wantPrefs = prefs || { keyboard: "auto", sound: true };
+  const touch = /-touch$/.test(name);
   const seed =
-    (name === base ? [] : [TOUCH_STUB + "\n"])
+    (touch ? [TOUCH_STUB + "\n"] : [])
       .concat([
         "    <script>",
         "      // seeded by tools/qa-fixture.mjs for headless screenshots",
@@ -120,6 +139,6 @@ for (const name of names) {
   writeFileSync(out, html.replace(marker, seed), "utf8");
   console.log(
     "wrote " + path.relative(root, out) + " (theme " + state.theme + ", " + base +
-      (name === base ? "" : ", coarse pointer") + ")",
+      ", " + saved.language + (touch ? ", coarse pointer" : "") + ")",
   );
 }

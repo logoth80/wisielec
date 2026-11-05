@@ -78,15 +78,20 @@ body {
 
 /* ------------------------------------------------------------------ top hud */
 
+/* the bar has three places: the dictionary switch at the left edge, the controls it
+   does not belong to in the middle, and the score at the right end */
 .hud {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 10px;
 }
 
-/* every control on the page lives in this one row, F2 language first; the score
-   and the high score take the right-hand end */
+.hud #btn-language {
+  justify-self: start;
+}
+
+/* the rest of the controls, in one row at the middle of the bar */
 .hud .controls {
   justify-self: center;
   justify-content: center;
@@ -226,13 +231,18 @@ body {
    line of tiny grey letters is unreadable however much room the page has. It sits
    clearly below the word, because that is the thing you are looking at. */
 
+/* The distance below the word is the first thing to give when the column runs out of
+   room: fitTried() in hangman-view.js lowers --tighten by exactly the height that is
+   missing, and never below the 8px that still separates the two. */
+
 .tried {
   min-height: 1.2em;
   max-width: 100%;
-  margin-top: clamp(14px, 4.5vh, 48px);
+  margin-top: max(8px, calc(clamp(14px, 4.5vh, 48px) - var(--tighten, 0px)));
   text-align: center;
-  font-size: max(16px, calc(var(--letter-size) * 0.7));
-  letter-spacing: 0.12em;
+  font-size: max(20px, calc(var(--letter-size) * 0.9));
+  font-weight: 400;
+  letter-spacing: 0.1em;
   color: var(--faint);
   word-break: break-all;
 }
@@ -292,10 +302,24 @@ body {
   cursor: default;
 }
 
+/* the icon chips are fixed-width boxes so their glyph sits dead centre, but they
+   take their height from the row, not the other way round: the bar's height is set
+   by the labelled chips, and a bigger pictogram must not stretch it. */
 .chip.icon {
   width: 36px;
-  padding: 7px 0;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+  line-height: 1;
   text-align: center;
+  font-size: 19px;
+}
+
+/* the music note is the sparsest pictogram on the bar: a thin stem and a small
+   flag, so at the size of the keyboard glyph it reads as a speck. It is set far
+   larger than the others on purpose. */
+.chip.icon-note {
+  font-size: 26px;
 }
 
 .chip.on {
@@ -604,9 +628,22 @@ textarea {
     gap: 6px;
   }
 
+  /* on a phone the bar keeps its grammar: the switch at the left edge, the rest of
+     the controls centred in what is left of the row, the score across the line below */
   .hud {
-    grid-template-columns: 1fr;
-    justify-items: center;
+    grid-template-columns: auto 1fr;
+    justify-items: stretch;
+  }
+
+  .hud .controls {
+    justify-self: stretch;
+    justify-content: center;
+  }
+
+  /* the switch at the left end of the bar is a control like any other: it has to be
+     pressable with a thumb, so it stands as tall as the icons beside it */
+  .hud #btn-language {
+    min-height: 46px;
   }
 
   .board {
@@ -625,6 +662,7 @@ textarea {
   }
 
   .status {
+    grid-column: 1 / -1;
     width: 100%;
     justify-content: space-between;
     margin-left: 0;
@@ -649,6 +687,7 @@ textarea {
 
   .chip.icon {
     width: 46px;
+    height: 46px;
     min-height: 46px;
     padding: 0;
     font-size: 21px;
@@ -657,8 +696,7 @@ textarea {
   /* the music note is a small, sparse pictogram — it has to be set much larger than
      the keyboard pictogram to read at the same size on the same bar */
   .chip.icon-note {
-    font-size: 30px;
-    line-height: 1;
+    font-size: 38px;
   }
 
   .chip-continue {

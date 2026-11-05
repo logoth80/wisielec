@@ -388,11 +388,32 @@ ok(
     !/body\[data-kbd="on"\]\s*\.gallows/.test(css),
 );
 ok(
-  "the letters you tried are sized against the word they belong to, and set below it",
-  /\.tried\s*\{[^}]*font-size:\s*max\(1[0-9]px,\s*calc\(var\(--letter-size\)\s*\*\s*0\.[5-8]\)\)/.test(css) &&
-    /\.tried\s*\{[^}]*margin-top:\s*clamp\(1[0-9]px/.test(css) &&
+  "the letters you tried are sized against the word they belong to, set below it, kept readable, in the theme's muted colour and without extra weight",
+  // the desktop draws this line at 60 pt next to a word of 80 pt, so it is near the
+  // word's own size rather than a caption; --letter-size is written on #play so the
+  // line inherits the size fitWord() chose for this word
+  /\.tried\s*\{[^}]*font-size:\s*max\(2[0-9]px,\s*calc\(var\(--letter-size\)\s*\*\s*0\.9\)\)/.test(css) &&
+    // the space under the word is what gives way first, down to a floor that still
+    // separates the two, and only then the size of the letters
+    /\.tried\s*\{[^}]*margin-top:\s*max\(8px,\s*calc\(clamp\(1[0-9]px[^)]*\)\s*-\s*var\(--tighten,/.test(css) &&
+    /area\.style\.setProperty\("--tighten"/.test(viewSource) &&
+    // the muted colour of the theme, as the page had it — a darker colour and an
+    // opacity would both pull this secondary line forward over the word
+    /\.tried\s*\{[^}]*color:\s*var\(--faint\)/.test(css) &&
+    !/\.tried\s*\{[^}]*opacity:/.test(css) &&
+    // the page sets a heavy base weight, so this line has to say plainly that it is
+    // not set in bold
+    /\.tried\s*\{[^}]*font-weight:\s*400/.test(css) &&
     /const styles = area \|\| host;[\s\S]*styles\.style\.setProperty\("--letter-size"/.test(viewSource) &&
-    !/host\.style\.setProperty\("--letter-size"/.test(viewSource),
+    !/host\.style\.setProperty\("--letter-size"/.test(viewSource) &&
+    // …and it is the used-letters line that gives way when the column runs out of
+    // room, never the word: it steps down only while that actually buys space
+    /function fitTried\(line, count\)/.test(viewSource) &&
+    /fitTried\(get\("tried"\)/.test(viewSource) &&
+    /line\.style\.removeProperty\("font-size"\)/.test(viewSource) &&
+    // and it only gives back the height the page is short of, shared over the lines
+    // of this text: no fixed fraction of the size is thrown away
+    /Math\.floor\(size - Math\.max\(1, Math\.ceil\(over\(\) \/ lines\)\)\)/.test(viewSource),
 );
 ok(
   "the sound chip carries the same on-state as the keyboard chip",
@@ -417,10 +438,21 @@ ok(
   /\.cell\.solved::after\s*\{\s*opacity:\s*0/.test(css),
 );
 ok(
-  "every control and the score sit in the top bar, the F2 button first; no footer, no hint text",
-  /<header class="hud">[\s\S]*?class="controls"[\s\S]*?id="btn-language"[\s\S]*?id="btn-theme"[\s\S]*?class="status"[\s\S]*?<\/header>/.test(html) &&
+  "the dictionary switch stands at the left end of the top bar, the other controls in the middle, the score at the right; no footer, no hint text",
+  /<header class="hud">[\s\S]*?id="btn-language"[\s\S]*?class="controls"[\s\S]*?id="btn-theme"[\s\S]*?class="status"[\s\S]*?<\/header>/.test(html) &&
+    /\.hud \{[^}]*grid-template-columns: auto 1fr auto/.test(css) &&
+    /\.hud #btn-language \{[^}]*justify-self: start/.test(css) &&
     !/<footer/.test(html) &&
     !/class="hint"/.test(html),
+);
+ok(
+  "the dictionary is switched by that button and by nothing else: no F2 key is handled, and the Keys panel names the button instead of a key",
+  !/key === "F2"/.test(appSource) &&
+    /get\("btn-language"\)\.addEventListener\("click", toggleLanguage\)/.test(appSource) &&
+    /<th data-i18n="help\.lang\.head">/.test(html) &&
+    !/<th>F2<\/th>/.test(html) &&
+    Object.prototype.hasOwnProperty.call(core.STRINGS.english, "help.lang.text") &&
+    Object.prototype.hasOwnProperty.call(core.STRINGS.polish, "help.lang.text"),
 );
 ok(
   "the on-screen keyboard takes over the list of used letters when it is shown",
@@ -435,10 +467,15 @@ ok(
   /BEEPS = \{ correct: \[800, 70\], wrong: \[300, 100\] \}/.test(viewSource),
 );
 ok(
-  "on touch the end-of-word message keeps no Space or F1 hint",
+  "on touch the end-of-word message keeps no Space or F1 hint, in either language",
   /matchMedia\("\(pointer: coarse\)"\)/.test(viewSource) &&
-    /touch \? "Great!"/.test(viewSource) &&
-    /touch \? "\." : "\. \(F1\)"/.test(viewSource),
+    [/\? t\("msg\.winTouch"\) : t\("msg\.win"\)/.test(viewSource),
+      core.STRINGS.english["msg.win"].includes("Space"),
+      core.STRINGS.english["msg.win"].includes("(F1)"),
+      core.STRINGS.polish["msg.win"].includes("Spacja"),
+      core.STRINGS.polish["msg.win"].includes("(F1)"),
+      !/Space|\(F1\)/.test(core.STRINGS.english["msg.winTouch"]),
+      !/Spacja|\(F1\)/.test(core.STRINGS.polish["msg.winTouch"])].every(Boolean),
 );
 ok(
   "a phone gets press-sized controls and a Continue button meant to be tapped",
@@ -450,6 +487,89 @@ ok(
   !/btn-find/.test(html) && !/btn-find/.test(appSource) &&
     /if \(key === "F10"\) \{[\s\S]{0,80}possibleWords\(\);/.test(appSource) &&
     /<th>F10<\/th>/.test(html),
+);
+
+/* ── the interface speaks the language you are playing in ───────────────────
+ * Upstream's own on-screen strings are English whatever the dictionary; a page
+ * that left its menus in English halfway through a Polish game would be a third
+ * thing. So the interface is translated as one unit, and these checks keep the
+ * two halves level and keep the rules and the record out of the translation. */
+group("10  in Polish settings everything on screen is Polish");
+const coreSource = readFileSync(at("js", "hangman-core.js"), "utf8");
+const enKeys = Object.keys(core.STRINGS.english);
+const plKeys = Object.keys(core.STRINGS.polish);
+ok(
+  "both interface tables carry the same keys, and enough of them to be the whole page",
+  enKeys.length >= 50 &&
+    JSON.stringify(enKeys.slice().sort()) === JSON.stringify(plKeys.slice().sort()),
+);
+const markedKeys = new Set();
+for (const m of html.matchAll(/data-i18n(?:-(?:html|title|label))?="([^"]+)"/g)) {
+  markedKeys.add(m[1]);
+}
+ok(
+  "every key written into the page exists in both tables, and none of them takes a value the page cannot fill",
+  markedKeys.size >= 25 &&
+    Array.from(markedKeys).every(
+      (key) =>
+        Object.prototype.hasOwnProperty.call(core.STRINGS.english, key) &&
+        Object.prototype.hasOwnProperty.call(core.STRINGS.polish, key) &&
+        // a static mark would otherwise write "klawiatura ekranowa: " with the
+        // placeholder dropped; strings with a hole are written by code, which knows
+        // what belongs in it
+        !/\{\w+\}/.test(core.STRINGS.english[key]),
+    ),
+);
+const ENGLISH_TELLS = [
+  "score", "high score", "Game Over", "Continue", "word", "words", "letters",
+  "dictionary", "loading", "found", "entries", "Keys", "Saved data", "close",
+  "next", "switch", "explain", "theme", "sound", "keyboard",
+];
+ok(
+  "the Polish table holds no English words of its own",
+  Object.values(core.STRINGS.polish).every((value) => {
+    const text = String(value)
+      .replace(/\{[^}]*\}/g, " ")
+      .replace(/<[^>]*>/g, " ")
+      // file names from the desktop program are kept as they are, in both languages
+      .replace(/[\w.-]*\.(?:txt|py|html|js)\b/g, " ");
+    return !ENGLISH_TELLS.some(
+      (word) => new RegExp("(^|[^A-Za-z])" + word + "([^A-Za-z]|$)").test(text),
+    );
+  }),
+);
+ok(
+  "the language of the page itself follows the dictionary, not just its labels",
+  /UI_HTML_LANG = \{ english: "en", polish: "pl" \}/.test(coreSource) &&
+    /document\.documentElement\.lang = core\.UI_HTML_LANG/.test(viewSource) &&
+    /document\.title = t\("pageTitle"\)/.test(viewSource) &&
+    /useLanguage\(state\.language\)/.test(appSource) &&
+    /useLanguage\(next\)/.test(appSource),
+);
+ok(
+  "the language button names the dictionary in play in the language of the interface, and carries no key on it",
+  /t\("lang\.name\." \+ core\.uiLanguage\(snapshot\.language\)\)/.test(viewSource) &&
+    // the label is the language and nothing else: no key is printed on the button
+    /get\("btn-language"\)\.textContent = t\("lang\.name\./.test(viewSource) &&
+    core.stringsFor("polish")("lang.name.polish") === "polski" &&
+    core.stringsFor("polish")("lang.name.english") === "angielski" &&
+    core.stringsFor("english")("lang.name.polish") === "polish",
+);
+ok(
+  "text is filled through one formatter, so no half a sentence is concatenated",
+  /replace\(\/\\\{\(\\w\+\)\\\}\/g/.test(coreSource) &&
+    /t\("status\.score", \{ n: snapshot\.score \}\)/.test(viewSource) &&
+    /t\("msg\.loss", \{ word:/.test(viewSource) &&
+    /t\("data\.entries", \{ n:/.test(appSource) &&
+    /t\("title\.sound", \{ state:/.test(appSource),
+);
+ok(
+  "the rules and the record stay out of the translation: score, saved.txt and the history lines keep the desktop wording",
+  core.winPreview(40, 1, "abcde") === 74 &&
+    /this\.log\("died at " \+ s\.current_word \+ " with " \+ s\.score \+ " points"\)/.test(coreSource) &&
+    core.formatSaved({ language: "polish" }).includes("language='polish'") &&
+    // the table is defined and exported once and never consulted by the rules
+    (coreSource.match(/stringsFor/g) || []).length === 2,
 );
 
 console.log(

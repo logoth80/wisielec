@@ -204,6 +204,189 @@
     };
   }
 
+  /* ------------------------------------------------------------------ interface
+   *
+   * The desktop program's own on-screen text is English whatever the dictionary,
+   * because its strings are hard-coded literals ("score:", "Game Over! The word
+   * was ..."). A browser page in Polish settings reading English is something else
+   * again: here the interface follows the language you are playing in, while the
+   * rules, the saved record and the history lines stay exactly as upstream wrote
+   * them. {braces} are filled in by t(); keys are shared by both tables.
+   */
+  const UI_HTML_LANG = { english: "en", polish: "pl" };
+
+  const STRINGS = {
+    english: {
+      pageTitle: "Wisielec — Hangman",
+      "lang.name.polish": "polish",
+      "lang.name.english": "english",
+      "btn.theme": "F3 theme",
+      "btn.explain": "F1 explain",
+      "title.language": "switch the dictionary",
+      "title.theme": "F3 — next palette (13 of them)",
+      "title.explain": "F1 — explain the word",
+      "title.keyboard": "on-screen keyboard: {mode}",
+      "title.sound": "sound: {state}",
+      "title.help": "keys and notes",
+      "title.close": "close",
+      "mode.auto": "auto",
+      "mode.on": "on",
+      "mode.off": "off",
+      "state.on": "on",
+      "state.off": "off",
+      "status.score": "score: {n}",
+      "status.highscore": "high score: {n}",
+      "msg.win": "Great!   Space to continue... (F1)",
+      "msg.winTouch": "Great!",
+      "msg.loss": "Game Over! The word was {word}.",
+      "msg.f1": " (F1)",
+      "msg.score": "Your score: {n}",
+      "msg.continue": "Continue",
+      "aria.word": "word",
+      "aria.tried": "letters already tried",
+      "aria.keyboard": "on-screen keyboard",
+      "aria.letter": "letter {letter}",
+      "tab.keys": "Keys",
+      "tab.find": "Word finder",
+      "tab.data": "Saved data",
+      "help.letters.head": "a–z, ą ć ę ł ń ó ś ź ż",
+      "help.letters.text":
+        "a guess. Repeats, out-of-alphabet keys and input after the game ended are ignored, exactly as in the desktop build.",
+      "help.lang.head": "language button",
+      "help.lang.text":
+        "switch dictionary English ⇄ Polish, by clicking it only — there is no key for it. It reloads the word list and starts a new word, which is what the desktop F2 did.",
+      "help.f3.text": "next colour theme — the same 13 palettes, wrapping 13 → 1.",
+      "help.newgame.head": "New game",
+      "help.newgame.text":
+        "there is none: a word is played to the end, won or lost. When it is over, Space or Enter deals the next one; reloading the page resumes the word in progress instead.",
+      "help.space.head": "Space / Enter",
+      "help.space.text": "next word, but only once the game is over.",
+      "help.f1.text":
+        "open “co to jest <word>” in a search tab — available when the game is over.",
+      "help.f10.text":
+        "count the dictionary words that still match the pattern and rule out the misses.",
+      "help.notes": "Notes",
+      "note.letters.html":
+        "Polish letters are separate letters: <code>ą</code> is never revealed by guessing <code>a</code>. That is how the desktop version behaves, so the on-screen keyboard gains a row of ą ć ę ł ń ó ś ź ż while the Polish dictionary is active.",
+      "note.state.html":
+        "The state is written after every key press — reload the page, lock the phone, come back, and the word, letters, stage and score are where you left them.",
+      "note.dicts.html":
+        "The dictionaries are the unmodified upstream files (82 155 Polish / 272 372 English lines; 81 835 / 272 371 playable after the original 5–18-character filter).",
+      "note.files.html":
+        "Opening <code>index.html</code> directly works; serving the folder over http(s) just lets the page read the <code>.txt</code> files instead of their generated <code>.js</code> twins.",
+      "find.note.html":
+        "The pattern is the word as it currently stands; wrong letters are excluded — the same query as F10 and <code>list_words.py</code>.",
+      "find.checking": "checking <{pattern}> without {letters} …",
+      "find.found": "found {n} possible words for length {length}",
+      "find.none": "No word in this dictionary matches the letters you have ruled out.",
+      "find.tooMany": "Too many results to display. Please refine your search criteria.",
+      "data.note.html":
+        "saved.txt in the desktop format, so a browser save and a desktop save can be exchanged.",
+      "data.apply": "Load this state",
+      "data.export": "Download saved.txt",
+      "data.file": "Read saved.txt",
+      "data.exportHistory": "Download history.txt",
+      "data.reset": "Erase saved game",
+      "data.entries": "{n} entries kept in this browser (history.txt equivalent)",
+      "busy.loading": "loading {file} dictionary…",
+      "busy.failed": "dictionary could not be loaded: {message}",
+    },
+    polish: {
+      pageTitle: "Wisielec — gra w wisielca",
+      "lang.name.polish": "polski",
+      "lang.name.english": "angielski",
+      "btn.theme": "F3 motyw",
+      "btn.explain": "F1 wyjaśnij",
+      "title.language": "zmień słownik",
+      "title.theme": "F3 — następna kolorystyka (jest ich 13)",
+      "title.explain": "F1 — wyjaśnij hasło",
+      "title.keyboard": "klawiatura ekranowa: {mode}",
+      "title.sound": "dźwięk: {state}",
+      "title.help": "klawisze i uwagi",
+      "title.close": "zamknij",
+      "mode.auto": "auto",
+      "mode.on": "włączona",
+      "mode.off": "wyłączona",
+      "state.on": "włączony",
+      "state.off": "wyłączony",
+      "status.score": "wynik: {n}",
+      "status.highscore": "rekord: {n}",
+      "msg.win": "Brawo!   Spacja, aby zagrać dalej… (F1)",
+      "msg.winTouch": "Brawo!",
+      "msg.loss": "Koniec gry! Hasło brzmiało: {word}.",
+      "msg.f1": " (F1)",
+      "msg.score": "Twój wynik: {n}",
+      "msg.continue": "Dalej",
+      "aria.word": "hasło",
+      "aria.tried": "litery, które już sprawdziłeś",
+      "aria.keyboard": "klawiatura ekranowa",
+      "aria.letter": "litera {letter}",
+      "tab.keys": "Klawisze",
+      "tab.find": "Znajdź słowa",
+      "tab.data": "Zapisane dane",
+      "help.letters.head": "a–z, ą ć ę ł ń ó ś ź ż",
+      "help.letters.text":
+        "strzał. Powtórki, klawisze spoza alfabetu i znaki wpisywane po zakończeniu gry są pomijane — dokładnie tak jak w wersji desktopowej.",
+      "help.lang.head": "przycisk języka",
+      "help.lang.text":
+        "zmienia słownik: angielski ⇄ polski — tylko po kliknięciu, żaden klawisz tego nie robi. Lista słów wczytuje się od nowa i zaczyna nowe hasło, tak jak w wersji desktopowej robił to F2.",
+      "help.f3.text": "następna kolorystyka — te same 13 palet, po trzynastej znowu pierwsza.",
+      "help.newgame.head": "Nowa gra",
+      "help.newgame.text":
+        "nie ma takiej: hasło gra się do końca — wygrywa się lub przegrywa. Po zakończeniu spacja albo Enter losuje następne; odświeżenie strony wznawia grę toczonego właśnie hasła.",
+      "help.space.head": "Spacja / Enter",
+      "help.space.text": "następne hasło, ale dopiero wtedy, gdy gra jest zakończona.",
+      "help.f1.text":
+        "otwiera „co to jest <hasło>” w nowej karcie wyszukiwarki — dostępne po zakończeniu gry.",
+      "help.f10.text":
+        "liczy słowa ze słownika, które nadal pasują do wzoru i nie zawierają przestrzelonych liter.",
+      "help.notes": "Uwagi",
+      "note.letters.html":
+        "Polskie litery są osobnymi literami: wpisanie <code>a</code> nigdy nie odsłoni <code>ą</code>. Tak właśnie zachowuje się wersja desktopowa, dlatego przy polskim słowniku klawiatura ekranowa dostaje rząd ą ć ę ł ń ó ś ź ż.",
+      "note.state.html":
+        "Stan zapisuje się po każdym naciśnięciu klawisza — odśwież stronę, zablokuj telefon, wróć, a hasło, litery, szubienica i wynik będą dokładnie tam, gdzie je zostawiłeś.",
+      "note.dicts.html":
+        "Słowniki to niezmienione pliki oryginału (82 155 linii polskich / 272 372 angielskich; 81 835 / 272 371 nadających się po oryginalnym filtrze długości 5–18 znaków).",
+      "note.files.html":
+        "Otwarcie <code>index.html</code> wprost działa; wystawienie katalogu przez http(s) pozwala tylko wczytać pliki <code>.txt</code> zamiast ich wygenerowanych bliźniaków <code>.js</code>.",
+      "find.note.html":
+        "Wzór to hasło dokładnie w takim stanie, w jakim jest teraz; przestrzelone litery są wykluczane — to samo zapytanie co F10 i <code>list_words.py</code>.",
+      "find.checking": "szukam <{pattern}> bez {letters}…",
+      "find.found": "znaleziono {n} możliwych słów długości {length}",
+      "find.none": "Żadne słowo z tego słownika nie pasuje do liter, które odrzuciłeś.",
+      "find.tooMany": "Zbyt wiele wyników, aby je wszystkie wyświetlić. Zawęź kryteria.",
+      "data.note.html":
+        "saved.txt w formacie desktopowym — zapis z przeglądarki i zapis z desktopu można wymieniać między sobą.",
+      "data.apply": "Wczytaj ten stan",
+      "data.export": "Pobierz saved.txt",
+      "data.file": "Odczytaj saved.txt",
+      "data.exportHistory": "Pobierz history.txt",
+      "data.reset": "Skasuj zapisaną grę",
+      "data.entries": "{n} wpisów zapisanych w tej przeglądarce (odpowiednik history.txt)",
+      "busy.loading": "wczytuję słownik {file}…",
+      "busy.failed": "nie udało się wczytać słownika: {message}",
+    },
+  };
+
+  function uiLanguage(language) {
+    return language === "polish" ? "polish" : "english";
+  }
+
+  // t(key, values): the interface text for the language being played. A missing key
+  // falls back to English rather than showing the key, so a typo degrades to a
+  // working page instead of a wall of identifiers.
+  function stringsFor(language) {
+    const table = STRINGS[uiLanguage(language)];
+    const base = STRINGS.english;
+    return function t(key, values) {
+      const raw = Object.prototype.hasOwnProperty.call(table, key) ? table[key] : base[key];
+      if (raw == null) return key;
+      return String(raw).replace(/\{(\w+)\}/g, function (whole, name) {
+        return values && values[name] != null ? String(values[name]) : "";
+      });
+    };
+  }
+
   function toInt(value, fallback) {
     const n = Math.trunc(Number(value));
     return Number.isFinite(n) ? n : fallback;
@@ -505,6 +688,10 @@
     winPreview,
     explainUrl,
     dictionaryFileFor,
+    STRINGS,
+    UI_HTML_LANG,
+    uiLanguage,
+    stringsFor,
     defaultState,
     normalizeState,
     parseSaved,

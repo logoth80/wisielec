@@ -123,6 +123,7 @@
 
   function createKeyboard(host, onPress) {
     const keys = new Map();
+    let strings = core.stringsFor("english");
 
     function addRow(row, extra) {
       const rowEl = document.createElement("div");
@@ -133,7 +134,7 @@
         key.className = "key";
         key.dataset.letter = letter;
         key.textContent = letter.toUpperCase();
-        key.setAttribute("aria-label", "letter " + letter);
+        key.setAttribute("aria-label", strings("aria.letter", { letter: letter }));
         key.addEventListener("click", () => onPress(letter));
         rowEl.appendChild(key);
         keys.set(letter, key);
@@ -145,6 +146,12 @@
     addRow(POLISH_ROW, true);
 
     return {
+      setStrings(t) {
+        strings = t;
+        for (const [letter, key] of keys) {
+          key.setAttribute("aria-label", strings("aria.letter", { letter: letter }));
+        }
+      },
       setPolish(visible) {
         host.classList.toggle("show-polish", !!visible);
       },
@@ -170,6 +177,36 @@
     }
     const audio = createAudio();
     let wordCells = [];
+    let t = core.stringsFor("english");
+
+    // The interface speaks the language being played: index.html carries data-i18n,
+    // data-i18n-html, data-i18n-title and data-i18n-label keys on every piece of
+    // static chrome, and this rewrites them from the core's table. It runs on boot
+    // and whenever the language button or an imported saved.txt changes the language
+    // — not on every keystroke, because a page redraw is not a re-translation.
+    function applyLanguage(language) {
+      t = core.stringsFor(language);
+      document.documentElement.lang = core.UI_HTML_LANG[core.uiLanguage(language)];
+      document.title = t("pageTitle");
+      const fill = (selector, attribute, write) => {
+        for (const node of document.querySelectorAll("[" + selector + "]")) {
+          write(node, t(node.getAttribute(selector)));
+        }
+      };
+      fill("data-i18n", null, (node, text) => {
+        node.textContent = text;
+      });
+      fill("data-i18n-html", null, (node, html) => {
+        node.innerHTML = html;
+      });
+      fill("data-i18n-title", null, (node, text) => {
+        node.setAttribute("title", text);
+      });
+      fill("data-i18n-label", null, (node, text) => {
+        node.setAttribute("aria-label", text);
+      });
+      return t;
+    }
 
     function setPalette(theme) {
       const colors = paletteOf(theme);
@@ -235,6 +272,53 @@
       styles.style.setProperty("--underline-h", Math.max(2, Math.round(size * 0.07)) + "px");
     }
 
+    // The record of used letters is drawn at a fraction of the word's size, which is
+    // what makes it readable beside it. A long row of them, or a word that has just
+    // ended with its line and its button, must not push the page. What gives way first
+    // is the space under the word, because that is only distance; only after that the
+    // size of the letters, and only by as much as the page is actually short of. The
+    // word in play is never part of that trade, and whatever bought no room is put
+    // straight back.
+    function fitTried(line, count) {
+      const area = get("play") || (line && line.parentElement);
+      if (!area || !count) return;
+      if (getComputedStyle(line).display === "none") return; // the keyboard shows them
+      area.style.removeProperty("--tighten");
+      line.style.removeProperty("font-size");
+      const over = () =>
+        // what matters is that neither the column nor the page ends up short of room
+        Math.max(
+          area.scrollHeight - area.clientHeight,
+          document.documentElement.scrollHeight - window.innerHeight,
+        );
+      const before = over();
+      if (before <= 1) return;
+      // the distance under the word goes first: it is only space, and a few pixels of
+      // it are missed far less than a letter is
+      const gap = Math.floor(parseFloat(getComputedStyle(line).marginTop)) || 0;
+      const give = Math.max(0, Math.min(gap - 8, before));
+      if (give > 0) {
+        area.style.setProperty("--tighten", give + "px");
+        if (over() <= 1) return;
+      }
+      for (let pass = 0; pass < 6; pass += 1) {
+        const styles = getComputedStyle(line);
+        const size = parseFloat(styles.fontSize) || 0;
+        const leading = parseFloat(styles.lineHeight) || size * 1.2;
+        const lines = Math.max(1, Math.round(line.offsetHeight / leading));
+        // give back exactly the height the page is short of, shared out over the lines
+        // this text really makes: two pixels of overflow cost two pixels of size, not a
+        // fixed fraction of it
+        const want = Math.max(18, Math.floor(size - Math.max(1, Math.ceil(over() / lines))));
+        if (!(want < size)) break;
+        line.style.fontSize = want + "px";
+        if (over() <= 1 || want <= 18) break;
+      }
+      // undo in the same order, whatever did not actually buy room
+      if (over() >= before) line.style.removeProperty("font-size");
+      if (over() >= before) area.style.removeProperty("--tighten");
+    }
+
     function renderWord(snapshot) {
       const host = get("word");
       const letters = snapshot.word;
@@ -282,8 +366,8 @@
       // if score == highscore: tempcolor = RED — the current run matching the
       // best run is drawn in plain red, as on the desktop.
       score.classList.toggle("hot", snapshot.score === snapshot.highscore);
-      score.textContent = "score: " + snapshot.score;
-      get("highscore").textContent = "high score: " + snapshot.highscore;
+      score.textContent = t("status.score", { n: snapshot.score });
+      get("highscore").textContent = t("status.highscore", { n: snapshot.highscore });
     }
 
     function renderMessage(snapshot) {
@@ -296,21 +380,21 @@
       if (snapshot.win) {
         const line = document.createElement("div");
         line.className = "msg-line";
-        line.textContent = touch ? "Great!" : "Great!   Space to continue... (F1)";
+        line.textContent = touch ? t("msg.winTouch") : t("msg.win");
         const value = document.createElement("div");
         value.className = "msg-line msg-score";
-        value.textContent = "Your score: " + snapshot.finalScore;
+        value.textContent = t("msg.score", { n: snapshot.finalScore });
         host.append(line, value);
       } else if (snapshot.loss) {
         const line = document.createElement("div");
         line.className = "msg-line";
         line.textContent =
-          "Game Over! The word was " + snapshot.word.join("") + (touch ? "." : ". (F1)");
+          t("msg.loss", { word: snapshot.word.join("") }) + (touch ? "" : t("msg.f1"));
         host.appendChild(line);
         if (snapshot.showScore) {
           const value = document.createElement("div");
           value.className = "msg-line msg-score";
-          value.textContent = "Your score: " + snapshot.score;
+          value.textContent = t("msg.score", { n: snapshot.score });
           host.appendChild(value);
         }
       }
@@ -319,14 +403,16 @@
         cont.type = "button";
         cont.id = "btn-continue";
         cont.className = "chip chip-continue";
-        cont.textContent = "Continue";
+        cont.textContent = t("msg.continue");
         host.appendChild(cont);
       }
     }
 
     function renderLanguage(snapshot) {
-      // f"F2  {selected_language}" — the label names the language in play.
-      get("btn-language").textContent = "F2  " + snapshot.language;
+      // the label names the language in play, in the language of the interface. The
+      // desktop build wrote "F2  polish" here; this button has no key, so the label
+      // is the language and nothing else
+      get("btn-language").textContent = t("lang.name." + core.uiLanguage(snapshot.language));
       document.body.dataset.language = snapshot.language;
     }
 
@@ -338,11 +424,16 @@
       renderTried(snapshot);
       renderStatus(snapshot);
       renderMessage(snapshot);
+      // last, so the end-of-word line and its button are already counted in the room
+      // the column has before the used-letters size is settled
+      fitTried(get("tried"), snapshot.guessed.length);
       return snapshot;
     }
 
     return {
       render,
+      applyLanguage,
+      strings: () => t,
       fitWord,
       audio,
       cells: () => wordCells,

@@ -22,6 +22,22 @@
     return elements.get(id);
   };
 
+  // The interface follows the dictionary being played: both string tables live in
+  // js/hangman-core.js, the static chrome in index.html carries data-i18n keys, and
+  // useLanguage() below switches the two. The rules, the saved record and the
+  // history lines keep the desktop program's wording whatever language is on screen.
+  let t = core.stringsFor("english");
+
+  function useLanguage(language) {
+    t = view_.applyLanguage(language);
+    if (keyboardView && keyboardView.setStrings) keyboardView.setStrings(t);
+    // the two icon switches name their own position, so their titles are written
+    // with the value filled in — the page-wide translation pass cannot do that
+    paintKbdTitle(prefs.keyboard);
+    paintSoundTitle(prefs.sound);
+    return t;
+  }
+
   function readJson(key, fallback) {
     try {
       const raw = window.localStorage.getItem(key);
@@ -58,7 +74,7 @@
   }
   function renderHistoryCount() {
     const box = get("data-history");
-    if (box) box.textContent = history().length + " entries kept in this browser (history.txt equivalent)";
+    if (box) box.textContent = t("data.entries", { n: history().length });
   }
 
   /* ----------------------------------------------------------- dictionaries */
@@ -156,7 +172,8 @@
   function boot() {
     view_ = view.createView(get);
     const state = bootState();
-    setBusy("loading " + core.dictionaryFileFor(state.language) + " dictionary…");
+    useLanguage(state.language);
+    setBusy(t("busy.loading", { file: core.dictionaryFileFor(state.language) }));
     loadDictionary(state.language)
       .then((entry) => {
         dictionary = entry;
@@ -166,7 +183,7 @@
         draw();
       })
       .catch((error) => {
-        setBusy("dictionary could not be loaded: " + error.message);
+        setBusy(t("busy.failed", { message: error.message }));
       });
   }
 
@@ -206,17 +223,18 @@
     if (!game) return;
     const next = game.state.language === "english" ? "polish" : "english";
     game.setLanguage(next);
-    setBusy("loading " + core.dictionaryFileFor(next) + " dictionary…");
+    useLanguage(next);
+    setBusy(t("busy.loading", { file: core.dictionaryFileFor(next) }));
     loadDictionary(next)
       .then((entry) => {
         dictionary = entry;
         setBusy(null);
         game.setDictionary(entry.words, entry.index);
-        game.restart(); // F2 reloads the word list, then reset_game()
+        game.restart(); // switching reloads the word list, then reset_game(), as the desktop F2 did
         draw();
       })
       .catch((error) => {
-        setBusy("dictionary could not be loaded: " + error.message);
+        setBusy(t("busy.failed", { message: error.message }));
         draw();
       });
   }
@@ -227,19 +245,22 @@
     const pattern = game.evaluate().displayed;
     const length = game.state.current_word.length;
     const out = get("find-result");
-    out.textContent = "checking <" + pattern.replace(/_/g, ".") + "> without " + Array.from(game.bad).join("") + " …";
+    out.textContent = t("find.checking", {
+      pattern: pattern.replace(/_/g, "."),
+      letters: Array.from(game.bad).join(""),
+    });
     // The scan is a few thousand regex tests; deferring it keeps the tap instant.
     window.setTimeout(() => {
       const hits = game.possibleWords();
       const head = document.createElement("div");
       head.className = "find-head";
-      head.textContent = "found " + hits.length + " possible words for length " + length;
+      head.textContent = t("find.found", { n: hits.length, length: length });
       out.textContent = "";
       out.appendChild(head);
       if (hits.length === 0) {
         const none = document.createElement("div");
         none.className = "find-note";
-        none.textContent = "No word in this dictionary matches the letters you have ruled out.";
+        none.textContent = t("find.none");
         out.appendChild(none);
       } else if (hits.length <= 100) {
         // list_words.py prints the set when it is short enough to read.
@@ -250,7 +271,7 @@
       } else {
         const note = document.createElement("div");
         note.className = "find-note";
-        note.textContent = "Too many results to display. Please refine your search criteria.";
+        note.textContent = t("find.tooMany");
         out.appendChild(note);
       }
     }, 16);
@@ -290,12 +311,21 @@
     window.setTimeout(() => URL.revokeObjectURL(url), 2000);
   }
 
+  function paintKbdTitle(mode) {
+    const button = get("btn-kbd");
+    if (button) button.title = t("title.keyboard", { mode: t("mode." + mode) });
+  }
+  function paintSoundTitle(on) {
+    const button = get("btn-sound");
+    if (button) button.title = t("title.sound", { state: t(on ? "state.on" : "state.off") });
+  }
+
   function setKeyboardMode(mode) {
     prefs.keyboard = mode;
     document.body.dataset.kbd = mode;
     const button = get("btn-kbd");
     button.classList.toggle("on", mode === "on" || (mode === "auto" && isNarrow()));
-    button.title = "on-screen keyboard: " + mode;
+    paintKbdTitle(mode);
     savePrefs();
     draw(); // showing or hiding the keyboard changes the room the window has
   }
@@ -308,7 +338,7 @@
   function setSoundOn(on) {
     const button = get("btn-sound");
     button.classList.toggle("on", !!on);
-    button.title = "sound: " + (on ? "on" : "off");
+    paintSoundTitle(on);
   }
 
   function wireControls() {
@@ -332,11 +362,6 @@
       if (key === "F1") {
         event.preventDefault();
         explainWord();
-        return;
-      }
-      if (key === "F2") {
-        event.preventDefault();
-        toggleLanguage();
         return;
       }
       if (key === "F3") {
@@ -403,7 +428,8 @@
         draw();
       };
       if (core.dictionaryFileFor(state.language) !== dictionary.file) {
-        setBusy("loading " + core.dictionaryFileFor(state.language) + " dictionary…");
+        useLanguage(state.language);
+        setBusy(t("busy.loading", { file: core.dictionaryFileFor(state.language) }));
         loadDictionary(state.language)
           .then((entry) => {
             dictionary = entry;
@@ -411,7 +437,7 @@
             run();
           })
           .catch((error) => {
-            setBusy("dictionary could not be loaded: " + error.message);
+            setBusy(t("busy.failed", { message: error.message }));
             draw();
           });
       } else {
@@ -422,6 +448,7 @@
       window.localStorage.removeItem(STORAGE_KEY);
       window.localStorage.removeItem(HISTORY_KEY);
       game = newGame(core.defaultState()); // back to the fresh-game defaults
+      useLanguage(game.state.language);
       draw();
     });
     get("data-file").addEventListener("change", (event) => {
