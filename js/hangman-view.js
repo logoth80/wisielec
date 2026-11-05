@@ -57,8 +57,10 @@
 
   /* ------------------------------------------------------------ sound (beep) */
 
-  // winsound.Beep(300, 100) on a hit, winsound.Beep(800, 70) on a miss.
-  const BEEPS = { correct: [300, 100], wrong: [800, 70] };
+  // The desktop build beeps 300 Hz for 100 ms on a hit and 800 Hz for 70 ms on a
+  // miss. Those two are swapped here on request: a letter that was in the word gets
+  // the short high beep, a miss gets the low long one.
+  const BEEPS = { correct: [800, 70], wrong: [300, 100] };
 
   function createAudio() {
     let context = null;
@@ -281,12 +283,15 @@
 
     function renderMessage(snapshot) {
       const host = get("message");
+      // a phone has no Space key and no F1: the Continue button under the message is
+      // the whole affordance there, so the desktop hint is not repeated at it
+      const touch = root.matchMedia ? root.matchMedia("(pointer: coarse)").matches : false;
       host.textContent = "";
       host.classList.toggle("is-over", snapshot.gameOver);
       if (snapshot.win) {
         const line = document.createElement("div");
         line.className = "msg-line";
-        line.textContent = "Great!   Space to continue... (F1)";
+        line.textContent = touch ? "Great!" : "Great!   Space to continue... (F1)";
         const value = document.createElement("div");
         value.className = "msg-line msg-score";
         value.textContent = "Your score: " + snapshot.finalScore;
@@ -294,7 +299,8 @@
       } else if (snapshot.loss) {
         const line = document.createElement("div");
         line.className = "msg-line";
-        line.textContent = "Game Over! The word was " + snapshot.word.join("") + ". (F1)";
+        line.textContent =
+          "Game Over! The word was " + snapshot.word.join("") + (touch ? "." : ". (F1)");
         host.appendChild(line);
         if (snapshot.showScore) {
           const value = document.createElement("div");

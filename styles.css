@@ -573,9 +573,25 @@ textarea {
     font-size: 11px;
   }
 
+  /* touch targets: the icon chips in particular have to be pressable with a thumb,
+     and the only way forward after a word ends is the Continue button */
   .chip {
-    font-size: 12px;
-    padding: 6px 10px;
+    font-size: 13px;
+    padding: 9px 13px;
+    min-height: 40px;
+  }
+
+  .chip.icon {
+    width: 46px;
+    min-height: 46px;
+    padding: 0;
+    font-size: 21px;
+  }
+
+  .chip-continue {
+    font-size: 18px;
+    padding: 15px 38px;
+    min-height: 54px;
   }
 }
 

@@ -97,12 +97,33 @@ const probe = `
                 ]);
               }
               for (const ch of "aon") press(ch); // leave a record worth reading back
+              // finish the last word, so the end-of-word message and the Continue
+              // button are on screen for the measurements taken below
+              for (const ch of alphabet) press(ch);
               return {
                 byWord: samples,
                 glyphSpillPastSlot: Math.round(spill * 100) / 100,
                 rowShareOfPlayArea: Math.round(worstRow * 1000) / 1000,
               };
             })(),
+            // the end-of-word line as the running page actually writes it
+            message: (() => {
+              const host = document.getElementById("message");
+              const line = host && host.querySelector(".msg-line");
+              return line ? line.textContent : null;
+            })(),
+            // the only control that moves on from a finished word
+            continueBtn: (() => {
+              const b = document.getElementById("btn-continue");
+              if (!b) return null;
+              const r = b.getBoundingClientRect();
+              return [Math.round(r.width), Math.round(r.height), getComputedStyle(b).fontSize];
+            })(),
+            // every control in the top bar, with its press target
+            controls: [...document.querySelectorAll(".hud .controls .chip")].map((b) => {
+              const r = b.getBoundingClientRect();
+              return [b.id, Math.round(r.width), Math.round(r.height), getComputedStyle(b).fontSize];
+            }),
           };
           document.title = "PROBE " + JSON.stringify(report);
         }, 1500);

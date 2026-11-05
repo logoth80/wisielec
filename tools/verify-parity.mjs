@@ -398,6 +398,26 @@ ok(
   "no restart control anywhere: no F5, no Esc, no new-game button",
   !/key === "F5"/.test(appSource) && !/key === "Escape"/.test(appSource) && !/id="btn-new"/.test(html),
 );
+ok(
+  "a letter that was in the word gets the high short beep, a miss the low long one",
+  /BEEPS = \{ correct: \[800, 70\], wrong: \[300, 100\] \}/.test(viewSource),
+);
+ok(
+  "on touch the end-of-word message keeps no Space or F1 hint",
+  /matchMedia\("\(pointer: coarse\)"\)/.test(viewSource) &&
+    /touch \? "Great!"/.test(viewSource) &&
+    /touch \? "\." : "\. \(F1\)"/.test(viewSource),
+);
+ok(
+  "a phone gets press-sized controls and a Continue button meant to be tapped",
+  /\.chip\.icon\s*\{[^}]*min-height:\s*4[6-9]px[^}]*font-size:\s*2[0-9]px/.test(css) &&
+    /\.chip-continue\s*\{[^}]*min-height:\s*5[0-9]px/.test(css),
+);
+const findChip = /<button[^>]*id="btn-find"[\s\S]*?<\/button>/.exec(html);
+ok(
+  "the F10 hotkey is not printed on the button, only kept in the key list",
+  !!findChip && !/F10/.test(findChip[0]) && /<th>F10<\/th>/.test(html),
+);
 
 console.log(
   "\n" + (failures ? "FAILED " + failures + " of " + checks + " checks" : "all good: " + checks + " checks passed"),

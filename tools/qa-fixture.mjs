@@ -6,6 +6,9 @@
 //
 //   node tools/qa-fixture.mjs mid lost win kbd   ->  _qa_mid.html _qa_lost.html …
 //
+// A name ending in -touch is the same board with a coarse primary pointer, which is
+// the only way to reach the phone message path from a desktop browser.
+//
 // The states below are built from real dictionary entries, and their scores are
 // what the port's own rules produce (score + 45 - 2*len(word) on a win).
 import { readFileSync, writeFileSync } from "node:fs";
@@ -67,10 +70,31 @@ if (!html.includes(marker)) {
   process.exit(1);
 }
 
+// A name ending in "-touch" is the same board on a device whose primary pointer is
+// coarse. Headless desktop Chrome/Edge always reports "fine" whatever the window
+// size, so the stub is what lets the phone message path — no "Space to continue",
+// no "(F1)" — be screenshotted at all. Queries other than the one the game asks
+// about are passed through to the real matchMedia.
+const TOUCH_STUB = [
+  "    <script>",
+  "      // seeded by tools/qa-fixture.mjs: pretend the primary pointer is coarse",
+  "      (function () {",
+  "        const real = window.matchMedia.bind(window);",
+  "        window.matchMedia = function (query) {",
+  '          if (query === "(pointer: coarse)") {',
+  "            return { matches: true, media: query, onchange: null, addEventListener() {}, removeEventListener() {} };",
+  "          }",
+  "          return real(query);",
+  "        };",
+  "      })();",
+  "    </script>",
+].join("\n");
+
 for (const name of names) {
-  const state = STATES[name];
+  const base = name.replace(/-touch$/, "");
+  const state = STATES[base];
   if (!state) {
-    console.error("no such fixture: " + name + " (known: " + Object.keys(STATES).join(", ") + ")");
+    console.error("no such fixture: " + base + " (known: " + Object.keys(STATES).join(", ") + ")");
     continue;
   }
   const { prefs, ...saved } = state;
@@ -79,15 +103,20 @@ for (const name of names) {
   // have no keyboard and the phone shots get one
   const wantPrefs = prefs || { keyboard: "auto", sound: false };
   const seed =
-    [
-      "    <script>",
-      "      // seeded by tools/qa-fixture.mjs for headless screenshots",
-      '      localStorage.setItem("hangman.saved.v1", ' + JSON.stringify(JSON.stringify(saved)) + ");",
-      '      localStorage.setItem("hangman.prefs.v1", ' + JSON.stringify(JSON.stringify(wantPrefs)) + ");",
-      "    </script>",
-      marker,
-    ].join("\n") + "\n";
+    (name === base ? [] : [TOUCH_STUB + "\n"])
+      .concat([
+        "    <script>",
+        "      // seeded by tools/qa-fixture.mjs for headless screenshots",
+        '      localStorage.setItem("hangman.saved.v1", ' + JSON.stringify(JSON.stringify(saved)) + ");",
+        '      localStorage.setItem("hangman.prefs.v1", ' + JSON.stringify(JSON.stringify(wantPrefs)) + ");",
+        "    </script>",
+        marker,
+      ])
+      .join("\n") + "\n";
   const out = path.join(root, "_qa_" + name + ".html");
   writeFileSync(out, html.replace(marker, seed), "utf8");
-  console.log("wrote " + path.relative(root, out) + " (theme " + state.theme + ", " + name + ")");
+  console.log(
+    "wrote " + path.relative(root, out) + " (theme " + state.theme + ", " + base +
+      (name === base ? "" : ", coarse pointer") + ")",
+  );
 }
