@@ -1,13 +1,16 @@
 // tools/qa-probe.mjs — temporary: measure the running page from inside a headless
-// browser. Writes _qa_probe.html (index.html + a measuring script) and prints what
-// that page reports, so layout questions get numbers instead of guesses.
+// browser. Writes _qa_probe.html (a page + a measuring script; pass a fixture name to
+// measure that state) and prints what that page reports, so layout questions get
+// numbers instead of guesses.
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
-// the seeded fixture page, if it exists, so the probe runs against a known game
-const base = existsSync(path.join(root, "_qa_mid.html")) ? "_qa_mid.html" : "index.html";
+// a fixture may be named on the command line (e.g. _qa_kbd.html, to measure the
+// desktop keyboard while it is shown); otherwise the seeded fixture page, if it
+// exists, so the probe runs against a known game
+const base = process.argv[2] || (existsSync(path.join(root, "_qa_mid.html")) ? "_qa_mid.html" : "index.html");
 const html = readFileSync(path.join(root, base), "utf8");
 const marker = "</body>";
 

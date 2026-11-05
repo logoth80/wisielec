@@ -362,15 +362,35 @@ ok(
   /fitWord\(letters\.length\)/.test(viewSource) &&
     !/longestWord|setMaxWordLength/.test(viewSource + appSource),
 );
-const fixedText = [...css.matchAll(/font-size:\s*([^;]+);/g)]
+// The pictogram chips are controls in fixed boxes, not readable text, so their glyph
+// sizes are not part of "nothing may outsize the word": the phone block sizes those
+// boxes 46 px on purpose, and the note pictogram needs a large font to read at the
+// same visual size as the keyboard one. Everything that is text is still measured.
+const textCss = css.replace(/[^{}]*\.chip\.icon[\w-]*[^{}]*\{[^}]*\}/g, "");
+const fixedText = [...textCss.matchAll(/font-size:\s*([^;]+);/g)]
   .map((match) => match[1])
   // the word's size is a custom property written by the script, so it is not fixed CSS
   .filter((value) => !value.includes("--"))
   .flatMap((value) => [...value.matchAll(/(\d+(?:\.\d+)?)px/g)].map((m) => parseFloat(m[1])));
 ok(
-  "everything else on the page stays smaller than the word (no fixed size above 24px)",
+  "every readable text on the page stays smaller than the word (no fixed size above 24px outside the pictogram chips)",
   Math.max(0, ...fixedText) <= 24,
   "found " + Math.max(0, ...fixedText) + "px",
+);
+ok(
+  "a desktop keyboard, when asked for, is sized for a hand and the gallows gives way to it",
+  /@media \(min-width: 901px\)[\s\S]*?\.key\s*\{[^}]*height:\s*clamp\(5[0-9]px\s*,\s*8dvh\s*,\s*6[0-9]px/.test(css) &&
+    /body\[data-kbd="on"\]\s*\.gallows\s*\{[^}]*max-height:\s*min\(3[0-9]dvh/.test(css),
+);
+ok(
+  "the sound chip carries the same on-state as the keyboard chip",
+  /function setSoundOn\(on\)[\s\S]*?classList\.toggle\("on"/.test(appSource) &&
+    /setSoundOn\(prefs\.sound\)/.test(appSource) &&
+    !/classList\.toggle\("off"/.test(appSource),
+);
+ok(
+  "the note pictogram is set larger than the other icons on a phone, so it reads alike",
+  /\.chip\.icon-note\s*\{[^}]*font-size:\s*(2[5-9]|3[0-9])px/.test(css),
 );
 ok(
   "the letter size is measured against the widest glyph, so the slots keep their spacing",

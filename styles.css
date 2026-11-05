@@ -368,6 +368,42 @@ body {
   max-width: 42px;
 }
 
+/* The on-screen keyboard on a desktop is there because it was asked for, and at that
+   size there is room for keys an open hand can aim at. The word is still several
+   times taller than a key glyph: at this width even an eighteen-letter word gets
+   letters around 35 px. */
+@media (min-width: 901px) {
+  .keyboard {
+    width: min(1060px, 100%);
+    gap: 9px;
+    padding-top: 12px;
+  }
+
+  .kbd-row {
+    gap: 9px;
+  }
+
+  .key {
+    min-width: 44px;
+    max-width: 98px;
+    height: clamp(52px, 8dvh, 68px);
+    border-radius: 8px;
+    font-size: 24px;
+  }
+
+  .kbd-row-extra .key {
+    max-width: 88px;
+    height: clamp(46px, 7dvh, 60px);
+    font-size: 21px;
+  }
+
+  /* the gallows is the part of the page that gives: when the keyboard has been asked
+     for on a desktop it steps back, so nothing on the page has to scroll for it */
+  body[data-kbd="on"] .gallows {
+    max-height: min(34dvh, 340px);
+  }
+}
+
 body[data-kbd="on"] .keyboard {
   display: flex;
 }
@@ -586,6 +622,13 @@ textarea {
     min-height: 46px;
     padding: 0;
     font-size: 21px;
+  }
+
+  /* the music note is a small, sparse pictogram — it has to be set much larger than
+     the keyboard pictogram to read at the same size on the same bar */
+  .chip.icon-note {
+    font-size: 30px;
+    line-height: 1;
   }
 
   .chip-continue {

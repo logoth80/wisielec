@@ -35,7 +35,10 @@ const mid = {
 const STATES = {
   mid,
   // the same board, asked for the on-screen keyboard: used letters are greyed out
-  kbd: { ...mid, prefs: { keyboard: "on", sound: false } },
+  kbd: { ...mid, prefs: { keyboard: "on", sound: true } },
+  // and the same board with sound switched off: the sound chip shows the plain,
+  // unfilled state, so both halves of that indicator can be compared
+  sndoff: { ...mid, prefs: { keyboard: "auto", sound: false } },
   // ten misses: the whole figure, the loss line and the score read-out
   lost: {
     highscore: 44,
@@ -98,10 +101,10 @@ for (const name of names) {
     continue;
   }
   const { prefs, ...saved } = state;
-  // every fixture states the keyboard preference, so a shared browser profile can
-  // never leak one shot's setting into another: "auto" means the desktop shots
-  // have no keyboard and the phone shots get one
-  const wantPrefs = prefs || { keyboard: "auto", sound: false };
+  // every fixture states the preferences, so a shared browser profile can never leak
+  // one shot's setting into another: "auto" means the desktop shots have no keyboard
+  // and the phone shots get one, and sound on matches what a fresh page looks like
+  const wantPrefs = prefs || { keyboard: "auto", sound: true };
   const seed =
     (name === base ? [] : [TOUCH_STUB + "\n"])
       .concat([

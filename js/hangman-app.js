@@ -304,6 +304,14 @@
     return window.matchMedia("(max-width: 900px), (pointer: coarse)").matches;
   }
 
+  // the sound chip carries the same filled on-state as the keyboard chip, so "sound
+  // is on" is visible without pressing it — and off is the plain chip
+  function setSoundOn(on) {
+    const button = get("btn-sound");
+    button.classList.toggle("on", !!on);
+    button.title = "sound: " + (on ? "on" : "off");
+  }
+
   function wireControls() {
     // rotating a phone or resizing a window changes the stage and the word pitch,
     // so a redraw is part of the controls, not an extra
@@ -367,10 +375,13 @@
     });
     get("btn-sound").addEventListener("click", () => {
       prefs.sound = !prefs.sound;
-      get("btn-sound").classList.toggle("off", !prefs.sound);
-      get("btn-sound").title = "sound: " + (prefs.sound ? "on" : "off");
+      setSoundOn(prefs.sound);
       savePrefs();
-      if (prefs.sound) view_.audio.unlock();
+      // one beep when it comes back on, so the chip's filled state is confirmed
+      if (prefs.sound) {
+        view_.audio.unlock();
+        view_.audio.play("correct");
+      }
     });
 
     get("message").addEventListener("click", (event) => {
@@ -435,7 +446,7 @@
 
   document.addEventListener("DOMContentLoaded", () => {
     document.body.dataset.kbd = prefs.keyboard;
-    get("btn-sound").classList.toggle("off", !prefs.sound);
+    setSoundOn(prefs.sound);
     keyboardView = view.createKeyboard(get("keyboard"), (letter) => {
       view_.audio.unlock();
       press(letter);

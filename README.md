@@ -54,7 +54,9 @@ There is no build step and no server is required.
   explain, and the keyboard / sound / help toggles — is in one row along the top, with the
   score and the high score at its right end; the word finder's F10 hotkey is not printed
   on its button, it is only listed in the Keys panel. On a phone the same controls are
-  sized for a thumb: the icon buttons are 46 px squares with 21 px glyphs. The word being
+  sized for a thumb: the icon buttons are 46 px squares with 21 px glyphs, and the music
+  note is set at 30 px because that pictogram is far sparser than the keyboard one and
+  only reads at the same size that way. The word being
   guessed is the largest element at every screen size; the gallows and the letters already
   tried are drawn smaller around it.
 - **The word takes the room it is given.** The slot pitch is the width of the play area
@@ -82,6 +84,14 @@ There is no build step and no server is required.
 - **The on-screen keyboard sits at the bottom and replaces the "letters you tried"
   line** while it is shown — it already shows every letter used, greyed the same way
   whether it was in the word or not. With a physical keyboard in play that line stays.
+  Asked for on a desktop it is a keyboard sized for a hand, not a thumbnail: keys about
+  98 × 57 px (up to 68 px tall on a tall window, and never below 52 px on a short one)
+  with 24 px letters, and the gallows steps back so that the page never scrolls for it.
+  A phone keeps its thumb-sized 46 px keys. Even then the word is several times taller
+  than a key glyph: at that width an eighteen-letter word still gets 37 px letters.
+- **The toggles show what they are doing.** The keyboard and the sound chip take the same
+  filled on-state, so "sound is on" is visible before anything is pressed, and switching
+  sound back on answers with one beep.
 - `saved.txt`, the preferences and the history live in `localStorage`
   (`hangman.saved.v1`, `hangman.prefs.v1`, `hangman.history.v1`) with the same fields
   and written at the same moments.
@@ -96,30 +106,42 @@ There is no build step and no server is required.
 node tools/verify-parity.mjs
 ```
 
-86 checks over nine areas: the dictionary payloads and filter, the word-finder scan,
+89 checks over nine areas: the dictionary payloads and filter, the word-finder scan,
 all 13 palettes, the game rules, the saved-file format, Polish collation, page wiring,
 and the interface rules above (one used-letter state, the keyboard replacing the tried
 list, no restart control, all controls and the score in the top bar, the word sized to
 the space it is given and measured against the widest glyph, a filled slot drawing no
 bar, the two beeps swapped, touch-sized controls and a touch-sized Continue button, an
 end-of-word message that mentions no keys on a touch device, no F10 printed on a button,
-everything else smaller than the word). The expected values were measured by running the
-upstream Python over these exact dictionary files.
+the sound chip carrying the same on-state as the keyboard chip, a desktop keyboard sized
+for a hand with the gallows stepping back for it, every readable text on the page smaller
+than the word — the pictogram chips are exempt, being controls in fixed boxes rather than
+content). The expected values were measured by running the upstream Python over these
+exact dictionary files.
 
-`node tools/qa-probe.mjs` prints what the running page actually measures: box geometry
-for the app, the play area, the word row and the keyboard, the state a reload would find
-in `localStorage`, the computed opacity of a filled slot's bar, whether the page scrolls,
-the size of every control in the top bar, the end-of-word line as the page wrote it and
-the size of the Continue button, and — after playing six words out and dealing new ones —
-a sample per word of `[letters, slot pitch, letter size, row width]`. Each word must get
-a bigger size than a longer one, every row must stay inside the play area
-(`rowShareOfPlayArea` below 1), no glyph may reach past its slot, the filled slot's bar
-must read `0`, the page must not scroll, and a phone's icon buttons must measure 46 px.
+`node tools/qa-probe.mjs [fixture]` prints what the running page actually measures: box
+geometry for the app, the play area, the word row, the controls in the top bar and the
+keyboard; the state a reload would find in `localStorage`; the computed opacity of a
+filled slot's bar; whether the page scrolls; the end-of-word line as the page wrote it;
+the size of the Continue button; and — after playing six words out and dealing new ones —
+a sample per word of `[letters, slot pitch, letter size, row width]`. A fixture may be
+named to measure a state: `node tools/qa-probe.mjs _qa_kbd.html` measures the desktop
+keyboard while it is shown. What has to hold:
+
+- each word larger than a longer one, every row inside the play area
+  (`rowShareOfPlayArea` below 1), no glyph reaching past its slot, a filled slot's bar
+  reading `0`;
+- `scroll` equal to `inner` at every window size, with the keyboard shown or hidden;
+- a phone's icon buttons measuring 46 px with the note glyph larger than the rest, and a
+  desktop's keys about 98 px wide and clamped in height, so even a 620 px-tall window
+  holds the whole page.
 
 ### screenshots
 
-`node tools/qa-fixture.mjs mid lost win kbd` writes `_qa_*.html` — pages with a game
-seeded into `localStorage`, so a headless browser lands on a board in a chosen state:
+`node tools/qa-fixture.mjs mid lost win kbd sndoff` writes `_qa_*.html` — pages with a
+game seeded into `localStorage`, so a headless browser lands on a board in a chosen state
+(`kbd` has the on-screen keyboard asked for, `sndoff` is the same board with sound
+switched off, which is how both halves of the sound indicator are compared):
 
 ```
 msedge --headless=new --disable-gpu --no-first-run --hide-scrollbars \
