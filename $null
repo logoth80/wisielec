@@ -1,1 +1,0 @@
-[16144:22916:1105/160803.302:ERROR:components\sync\engine\get_updates_processor.cc:426] PostClientToServerMessage() failed during GetUpdates with error Network error (ERR_ABORTED)
