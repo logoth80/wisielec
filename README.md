@@ -120,3 +120,8 @@ shots are taken at `--window-size=500,900`; a true 390 px viewport needs DevTool
 emulation. When a layout question comes up, `node tools/qa-probe.mjs` prints the real
 box sizes from inside the running page. The images in `qa/` are the current output, not
 a golden reference — regenerate them after touching the view.
+
+`qa/live-desktop.png` and `qa/live-mobile.png` are the same two viewports aimed at the
+Pages URL instead of a local file; taking them, and counting `class="cell"` and
+`class="key"` in the rendered DOM of the live page, is how a push is checked after it
+has deployed.
