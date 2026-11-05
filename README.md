@@ -4,12 +4,22 @@ The desktop game in `hangman.pyw`, running as a static page: the same words, the
 rules, the same saved-state semantics and the same keys, plus an on-screen keyboard so
 it can be played with a thumb.
 
-## running it
+## play it
 
-Open `index.html`. There is no build step and no server is required.
+**[logoth80.github.io/wisielec](https://logoth80.github.io/wisielec/)** — the game runs
+straight off this repository. GitHub Pages serves the files in `main` as they are: no
+build step, no server, nothing to install. The word lists, the themes and the saved-board
+code are all in the repo, so that link is the game; it is also set as the repository's
+homepage, and pushing to `main` redeploys it.
 
-- The dictionaries load with `fetch()` when the page is served over http and through
-  the `dictionaries/*.js` payloads when it is opened straight from the filesystem.
+## running it locally
+
+Clone it and open `index.html` — `git clone https://github.com/logoth80/wisielec.git`.
+There is no build step and no server is required.
+
+- The dictionaries load with `fetch()` when the page is served over http (including the
+  Pages deployment) and through the `dictionaries/*.js` payloads when it is opened
+  straight from the filesystem.
 - `node tools/build-dictionaries.mjs` regenerates those payloads from the `.txt` files.
 
 ## how it is split
