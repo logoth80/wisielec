@@ -224,10 +224,15 @@
       // its bars: that keeps the gaps along the row constant whatever is drawn
       const room = pitch - Math.max(4, Math.round(pitch * 0.18));
       const size = Math.max(11, Math.min(Math.round(pitch * 1.16), Math.floor(room / measureWidest())));
-      host.style.setProperty("--cell", pitch + "px");
-      host.style.setProperty("--letter-size", size + "px");
+      // the sizes go on the play area rather than the word row: the record of the
+      // letters you tried sits beside the word and is drawn at a fraction of its size,
+      // as in the source game (tried_letters at 60pt against the word's 80pt), so it
+      // has to inherit them
+      const styles = area || host;
+      styles.style.setProperty("--cell", pitch + "px");
+      styles.style.setProperty("--letter-size", size + "px");
       // the bar is a fraction of the letter, as the source game's "_" is
-      host.style.setProperty("--underline-h", Math.max(2, Math.round(size * 0.07)) + "px");
+      styles.style.setProperty("--underline-h", Math.max(2, Math.round(size * 0.07)) + "px");
     }
 
     function renderWord(snapshot) {

@@ -50,16 +50,17 @@ There is no build step and no server is required.
 
 ## what is deliberately different
 
-- **The layout is not the pygame window's.** Every control — language, theme, word finder,
-  explain, and the keyboard / sound / help toggles — is in one row along the top, with the
-  score and the high score at its right end; the word finder's F10 hotkey is not printed
-  on its button, it is only listed in the Keys panel. On a phone the same controls are
-  sized for a thumb: the icon buttons are 46 px squares with 21 px glyphs, and the music
-  note is set at 30 px because that pictogram is far sparser than the keyboard one and
-  only reads at the same size that way. The word being
+- **The layout is not the pygame window's.** The controls that are on screen — language,
+  theme, explain, and the keyboard / sound / help toggles — are in one row along the top,
+  with the score and the high score at its right end. The word finder has no button: F10
+  opens it, and the Keys panel is where that is written down. On a phone the same controls
+  are sized for a thumb: the icon buttons are 46 px squares with 21 px glyphs, and the
+  music note is set at 30 px because that pictogram is far sparser than the keyboard one
+  and only reads at the same size that way. The word being
   guessed is the largest element at every screen size; the gallows and the record of the
-  letters already tried are drawn around it, smaller than the word but still large enough
-  to read from across a table.
+  letters already tried are drawn around it — the used letters at seven tenths of the size
+  of the word they belong to, close to the source game's 60 pt against 80 pt, so they read
+  instead of being a grey whisper.
 - **The word takes the room it is given.** The slot pitch is the width of the play area
   divided by the number of letters in the word on the board, limited by a share of the
   screen height and by 110 px; the letter size is then measured against the widest glyph
@@ -85,8 +86,11 @@ There is no build step and no server is required.
 - **The on-screen keyboard sits at the bottom and replaces the "letters you tried"
   line** while it is shown — it already shows every letter used, greyed the same way
   whether it was in the word or not. With a physical keyboard in play that line stays,
-  and it is set to be read: 24 px letters at a normal weight, with a clear gap under the
-  word row (measured 49 px at 1280 × 800) rather than crowded against it.
+  and it is sized against the word it belongs to rather than fixed small: seven tenths of
+  that word's letter size, over a 16 px floor — `calc(var(--letter-size) * 0.7)` — the
+  same derivation the source game uses, its `tried_letters` at 60 pt against a word of
+  80 pt. Measured: 53 px beside a 76 px word at 1280 × 800, 59 px beside an 85 px one at
+  1920 × 1080, with a clear gap under the word row (49 px) rather than a crowding of it.
   Asked for on a desktop, the keyboard is sized for a hand, not a thumbnail: keys about
   98 × 57 px (up to 68 px tall on a tall window, never below 52 px on a short one) with
   24 px letters at a normal weight — a bold letter on a key is noise, not a letter you
@@ -102,7 +106,8 @@ There is no build step and no server is required.
 - `saved.txt`, the preferences and the history live in `localStorage`
   (`hangman.saved.v1`, `hangman.prefs.v1`, `hangman.history.v1`) with the same fields
   and written at the same moments.
-- **F10 searches the dictionary you are actually playing.** The desktop `find_words()`
+- **F10 — F10 alone, with no button for it — searches the dictionary you are actually
+  playing.** The desktop `find_words()`
   hard-codes `pruned_polish.txt` whatever language is selected; that reads as a bug, and
   the port does not reproduce it.
 - Esc does nothing at all; there is nothing to quit, and the game is in storage anyway.
@@ -119,7 +124,8 @@ and the interface rules above (one used-letter state, the keyboard replacing the
 list, no restart control, all controls and the score in the top bar, the word sized to
 the space it is given and measured against the widest glyph, a filled slot drawing no
 bar, the two beeps swapped, touch-sized controls and a touch-sized Continue button, an
-end-of-word message that mentions no keys on a touch device, no F10 printed on a button,
+end-of-word message that mentions no keys on a touch device, the word finder having no
+button and being F10 only,
 the sound chip carrying the same on-state as the keyboard chip, a desktop keyboard sized
 for a hand with its letters at a normal weight, a drawing sized by the room the page has
 rather than one made smaller for the keyboard, a used-letters line large enough to read
@@ -147,8 +153,11 @@ keyboard while it is shown. What has to hold:
   desktop's keys about 98 px wide at a normal letter weight, so even a 620 px-tall window
   holds the whole page;
 - the drawing measuring the same for `_qa_mid.html` and `_qa_kbd.html` at 1920 × 1080
-  (312 × 520 both) and giving way only when the window is too short for both; the used
-  letters reading 24 px and sitting some 50 px clear of the word row.
+  (312 × 520 both) and giving way only when the window is too short for both;
+- the used letters measuring 0.7 of the letter size of the word in play (53 px beside a
+  76 px word at 1280 × 800) and sitting some 50 px clear of the word row;
+- the `controls` list coming back with six chips — language, theme, explain and the three
+  icon toggles — the word finder not among them, because it has no button.
 
 ### screenshots
 

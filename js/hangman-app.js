@@ -125,7 +125,6 @@
     keyboardView.apply(snapshot);
     const explain = get("btn-explain");
     explain.disabled = !snapshot.gameOver;
-    get("btn-find").disabled = snapshot.word.length === 0;
     return snapshot;
   }
 
@@ -366,7 +365,6 @@
 
     get("btn-language").addEventListener("click", toggleLanguage);
     get("btn-theme").addEventListener("click", cycleTheme);
-    get("btn-find").addEventListener("click", possibleWords);
     get("btn-explain").addEventListener("click", explainWord);
     get("btn-help").addEventListener("click", () => (get("panel").hidden ? openPanel("help") : closePanel()));
     get("btn-kbd").addEventListener("click", () => {

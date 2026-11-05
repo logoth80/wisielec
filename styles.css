@@ -139,16 +139,26 @@ body {
   align-items: center;
   justify-content: center;
   gap: clamp(10px, 2.4vh, 26px);
+  /* the starting sizes, until fitWord() in hangman-view.js writes the real ones on
+     this same element; they live on the play area because the word row and the
+     record of used letters are both drawn from them */
+  --cell: 40px;
+  --letter-size: 34px;
+  --underline-h: 2px;
 }
 
+.word {
+  display: flex;
+  justify-content: center;
+  gap: 0;
+  flex-wrap: nowrap;
+  max-width: 100%;
+}
 /* The word is the point of the page: fitWord() in hangman-view.js sizes these
    cells to the space the page has, for the word actually on the board — a short
    word gets big letters, a long one smaller ones, up to the same ceiling. The
    size only changes when a new word is drawn, never while you are guessing it. */
 .word {
-  --cell: 40px;
-  --letter-size: 34px;
-  --underline-h: 2px;
   display: flex;
   justify-content: center;
   gap: 0;
@@ -211,18 +221,18 @@ body {
 }
 
 /* -------------------------------------------------------- tried letters, text */
-/* secondary to the word in play, but still comfortably readable: this is the record
-   of the letters used when there is no on-screen keyboard to read them from, and the
-   source game draws them at a size close to the word's own. It sits clearly below the
-   word, because that is the thing you are looking at. */
+/* secondary to the word in play, but sized against it rather than made small in
+   absolute terms: the source game draws these at 60 pt beside a word of 80 pt, and a
+   line of tiny grey letters is unreadable however much room the page has. It sits
+   clearly below the word, because that is the thing you are looking at. */
 
 .tried {
   min-height: 1.2em;
   max-width: 100%;
   margin-top: clamp(14px, 4.5vh, 48px);
   text-align: center;
-  font-size: clamp(16px, 2.6vw, 24px);
-  letter-spacing: 0.14em;
+  font-size: max(16px, calc(var(--letter-size) * 0.7));
+  letter-spacing: 0.12em;
   color: var(--faint);
   word-break: break-all;
 }

@@ -388,9 +388,11 @@ ok(
     !/body\[data-kbd="on"\]\s*\.gallows/.test(css),
 );
 ok(
-  "the letters you tried are readable and set below the word, not crowded under it",
-  /\.tried\s*\{[^}]*font-size:\s*clamp\(1[6-9]px\s*,\s*[\d.]+vw\s*,\s*2[0-4]px/.test(css) &&
-    /\.tried\s*\{[^}]*margin-top:\s*clamp\(1[0-9]px/.test(css),
+  "the letters you tried are sized against the word they belong to, and set below it",
+  /\.tried\s*\{[^}]*font-size:\s*max\(1[0-9]px,\s*calc\(var\(--letter-size\)\s*\*\s*0\.[5-8]\)\)/.test(css) &&
+    /\.tried\s*\{[^}]*margin-top:\s*clamp\(1[0-9]px/.test(css) &&
+    /const styles = area \|\| host;[\s\S]*styles\.style\.setProperty\("--letter-size"/.test(viewSource) &&
+    !/host\.style\.setProperty\("--letter-size"/.test(viewSource),
 );
 ok(
   "the sound chip carries the same on-state as the keyboard chip",
@@ -443,10 +445,11 @@ ok(
   /\.chip\.icon\s*\{[^}]*min-height:\s*4[6-9]px[^}]*font-size:\s*2[0-9]px/.test(css) &&
     /\.chip-continue\s*\{[^}]*min-height:\s*5[0-9]px/.test(css),
 );
-const findChip = /<button[^>]*id="btn-find"[\s\S]*?<\/button>/.exec(html);
 ok(
-  "the F10 hotkey is not printed on the button, only kept in the key list",
-  !!findChip && !/F10/.test(findChip[0]) && /<th>F10<\/th>/.test(html),
+  "the word finder has no button at all: F10 opens it, and the Keys panel is where that is written",
+  !/btn-find/.test(html) && !/btn-find/.test(appSource) &&
+    /if \(key === "F10"\) \{[\s\S]{0,80}possibleWords\(\);/.test(appSource) &&
+    /<th>F10<\/th>/.test(html),
 );
 
 console.log(
